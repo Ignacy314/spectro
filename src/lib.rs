@@ -109,8 +109,11 @@ pub fn train_model<P: AsRef<Path>>(
         .from_path(bg_csv)
         .unwrap();
     let mut bg_data = Vec::new();
-    for result in bg_reader.deserialize() {
-        let record: Vec<f32> = result.unwrap();
+    for (i, result) in bg_reader.deserialize().enumerate() {
+        let record: Vec<f32> = result.unwrap_or_else(|err| {
+            eprintln!("Error at record {i}");
+            vec![0.0]
+        });
         bg_data.push(record);
     }
 
