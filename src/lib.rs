@@ -5,7 +5,7 @@ use std::{
 };
 
 use convolutions_rs::convolutions::*;
-use interp::{InterpMode, interp_slice};
+// use interp::{InterpMode, interp_slice};
 use ndarray::*;
 use smartcore::{
     ensemble::random_forest_classifier::{
@@ -14,6 +14,7 @@ use smartcore::{
     linalg::basic::matrix::DenseMatrix,
     metrics::{ClassificationMetricsOrd, Metrics},
     model_selection::train_test_split,
+    tree::decision_tree_classifier::SplitCriterion,
 };
 use spectrum_analyzer::{samples_fft_to_spectrum, windows::hann_window};
 
@@ -30,7 +31,7 @@ pub fn process_samples(samples: &[i32]) -> (Vec<f32>, Vec<f32>) {
     )
     .unwrap();
 
-    let frequencies: Vec<f32> = (5..=4000).map(|s| s as f32).collect();
+    // let frequencies: Vec<f32> = (5..=4000).map(|s| s as f32).collect();
 
     let (freqs, values): (Vec<_>, Vec<_>) = spectrum.data().iter().copied().unzip();
     let freqs: Vec<f32> = freqs.into_iter().map(|f| f.val()).collect();
@@ -58,10 +59,10 @@ pub fn process_samples(samples: &[i32]) -> (Vec<f32>, Vec<f32>) {
         fft_diff = vec![0.0; fft_diff.len()];
     }
 
-    let interp_fft_diff = interp_slice(&freqs, &fft_diff, &frequencies, &InterpMode::default());
-    assert_eq!(interp_fft_diff.len(), 3996);
+    // let interp_fft_diff = interp_slice(&freqs, &fft_diff, &frequencies, &InterpMode::default());
+    // assert_eq!(interp_fft_diff.len(), 3996);
 
-    (freqs, interp_fft_diff)
+    (freqs, fft_diff)
 }
 
 pub fn wav_to_csv<P: AsRef<Path>>(wav_path: P, out_path: P) {
@@ -76,12 +77,11 @@ pub fn wav_to_csv<P: AsRef<Path>>(wav_path: P, out_path: P) {
         if sample_count == 8192 {
             sample_count = 0;
             let (_freqs, values) = process_samples(&sample_buf);
-            assert_eq!(values.len(), 3996);
-            // write!(csv, "{}", values[0]).unwrap();
-            for v in &values[0..3995] {
+            let n = values.len();
+            for v in &values[0..(n - 1)] {
                 write!(csv, "{v},").unwrap();
             }
-            writeln!(csv, "{}", values[3995]).unwrap();
+            writeln!(csv, "{}", values[n - 1]).unwrap();
             csv.flush().unwrap();
         }
     }
@@ -97,11 +97,8 @@ pub fn train_model<P: AsRef<Path>>(
         .from_path(drone_csv)
         .unwrap();
     let mut drone_data = Vec::new();
-    for (i, result) in drone_reader.deserialize().enumerate() {
-        let record: Vec<f32> = result.unwrap_or_else(|err| {
-            eprintln!("Error at record {i}");
-            vec![0.0]
-        });
+    for result in drone_reader.deserialize() {
+        let record: Vec<f32> = result.unwrap();
         drone_data.push(record);
     }
 
@@ -110,11 +107,8 @@ pub fn train_model<P: AsRef<Path>>(
         .from_path(bg_csv)
         .unwrap();
     let mut bg_data = Vec::new();
-    for (i, result) in bg_reader.deserialize().enumerate() {
-        let record: Vec<f32> = result.unwrap_or_else(|err| {
-            eprintln!("Error at record {i}");
-            vec![0.0]
-        });
+    for result in bg_reader.deserialize() {
+        let record: Vec<f32> = result.unwrap();
         bg_data.push(record);
     }
 
@@ -133,7 +127,8 @@ pub fn train_model<P: AsRef<Path>>(
         &y_train,
         RandomForestClassifierParameters::default()
             .with_seed(42)
-            .with_n_trees(10),
+            .with_n_trees(32)
+            .with_criterion(SplitCriterion::Gini),
     )
     .unwrap();
 
