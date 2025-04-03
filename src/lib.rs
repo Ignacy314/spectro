@@ -76,6 +76,7 @@ pub fn wav_to_csv<P: AsRef<Path>>(wav_path: P, out_path: P) {
         if sample_count == 8192 {
             sample_count = 0;
             let (_freqs, values) = process_samples(&sample_buf);
+            assert_eq!(values.len(), 3996);
             write!(csv, "{}", values[0]).unwrap();
             for v in values.iter().skip(1) {
                 write!(csv, ",{v}").unwrap();
@@ -95,13 +96,11 @@ pub fn train_model<P: AsRef<Path>>(
         .from_path(drone_csv)
         .unwrap();
     let mut drone_data = Vec::new();
-    let mut i = 0;
-    for result in drone_reader.deserialize() {
+    for (i, result) in drone_reader.deserialize().enumerate() {
         let record: Vec<f32> = result.unwrap_or_else(|err| {
             eprintln!("Error at record {i}");
             vec![0.0]
         });
-        i += 1;
         drone_data.push(record);
     }
 
