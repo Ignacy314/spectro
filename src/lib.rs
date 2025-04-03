@@ -77,11 +77,11 @@ pub fn wav_to_csv<P: AsRef<Path>>(wav_path: P, out_path: P) {
             sample_count = 0;
             let (_freqs, values) = process_samples(&sample_buf);
             assert_eq!(values.len(), 3996);
-            write!(csv, "{}", values[0]).unwrap();
-            for v in values.iter().skip(1) {
-                write!(csv, ",{v}").unwrap();
+            // write!(csv, "{}", values[0]).unwrap();
+            for v in &values[0..3996] {
+                write!(csv, "{v},").unwrap();
             }
-            writeln!(csv).unwrap();
+            writeln!(csv, "{}", values[3996]).unwrap();
             csv.flush().unwrap();
         }
     }
