@@ -82,6 +82,7 @@ pub fn wav_to_csv<P: AsRef<Path>>(wav_path: P, out_path: P) {
                 write!(csv, ",{v}").unwrap();
             }
             writeln!(csv).unwrap();
+            csv.flush().unwrap();
         }
     }
 }
