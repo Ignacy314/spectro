@@ -5,9 +5,12 @@ use std::{
 };
 
 use convolutions_rs::convolutions::*;
+use interp::{InterpMode, interp_slice};
 use ndarray::*;
 use smartcore::{
-    ensemble::random_forest_classifier::RandomForestClassifier,
+    ensemble::random_forest_classifier::{
+        RandomForestClassifier, RandomForestClassifierParameters,
+    },
     linalg::basic::matrix::DenseMatrix,
     metrics::{ClassificationMetricsOrd, Metrics},
     model_selection::train_test_split,
@@ -21,14 +24,16 @@ pub fn process_samples(samples: &[i32]) -> (Vec<f32>, Vec<f32>) {
     let spectrum = samples_fft_to_spectrum(
         &hann_window,
         48000,
-        spectrum_analyzer::FrequencyLimit::Range(5.0, 4001.0),
+        spectrum_analyzer::FrequencyLimit::Range(5.0, 4000.0),
         // spectrum_analyzer::FrequencyLimit::All,
         None,
     )
     .unwrap();
 
+    let frequencies: Vec<f32> = (5..=4000).map(|s| s as f32).collect();
+
     let (freqs, values): (Vec<_>, Vec<_>) = spectrum.data().iter().copied().unzip();
-    let freqs = freqs.into_iter().map(|f| f.val()).collect();
+    let freqs: Vec<f32> = freqs.into_iter().map(|f| f.val()).collect();
 
     let values: Vec<f32> = values.iter().map(|s| s.val().abs()).collect();
     let input = Array::from_shape_vec((1, 1, values.len()), values.clone()).unwrap();
@@ -53,7 +58,9 @@ pub fn process_samples(samples: &[i32]) -> (Vec<f32>, Vec<f32>) {
         fft_diff = vec![0.0; fft_diff.len()];
     }
 
-    (freqs, fft_diff)
+    let interp_fft_diff = interp_slice(&frequencies, &freqs, &fft_diff, &InterpMode::default());
+
+    (freqs, interp_fft_diff)
 }
 
 pub fn wav_to_csv<P: AsRef<Path>>(wav_path: P, out_path: P) {
@@ -112,7 +119,14 @@ pub fn train_model<P: AsRef<Path>>(
     y.append(&mut vec![0; n_bg]);
     let (x_train, x_test, y_train, y_test) = train_test_split(&x, &y, 0.2, true, Some(42));
 
-    let classifier = RandomForestClassifier::fit(&x_train, &y_train, Default::default()).unwrap();
+    let classifier = RandomForestClassifier::fit(
+        &x_train,
+        &y_train,
+        RandomForestClassifierParameters::default()
+            .with_seed(42)
+            .with_n_trees(10),
+    )
+    .unwrap();
 
     let y_hat = classifier.predict(&x_test).unwrap();
 
