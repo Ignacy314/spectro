@@ -95,8 +95,13 @@ pub fn train_model<P: AsRef<Path>>(
         .from_path(drone_csv)
         .unwrap();
     let mut drone_data = Vec::new();
+    let mut i = 0;
     for result in drone_reader.deserialize() {
-        let record: Vec<f32> = result.unwrap();
+        let record: Vec<f32> = result.unwrap_or_else(|err| {
+            eprintln!("Error at record {i}");
+            vec![0.0]
+        });
+        i += 1;
         drone_data.push(record);
     }
 
