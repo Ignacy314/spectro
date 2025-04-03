@@ -58,7 +58,7 @@ pub fn process_samples(samples: &[i32]) -> (Vec<f32>, Vec<f32>) {
         fft_diff = vec![0.0; fft_diff.len()];
     }
 
-    let interp_fft_diff = interp_slice(&frequencies, &freqs, &fft_diff, &InterpMode::default());
+    let interp_fft_diff = interp_slice(&freqs, &fft_diff, &frequencies, &InterpMode::default());
 
     (freqs, interp_fft_diff)
 }
