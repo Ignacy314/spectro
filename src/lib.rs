@@ -58,10 +58,10 @@ pub fn process_samples(samples: &[i32]) -> (Vec<f32>, Vec<f32>) {
         fft_diff = vec![0.0; fft_diff.len()];
     }
 
-    // let interp_fft_diff = interp_slice(&freqs, &fft_diff, &frequencies, &InterpMode::default());
-    // assert_eq!(interp_fft_diff.len(), 3996);
+    let interp_fft_diff = interp_slice(&freqs, &fft_diff, &frequencies, &InterpMode::default());
+    assert_eq!(interp_fft_diff.len(), 3996);
 
-    (freqs, fft_diff)
+    (freqs, interp_fft_diff)
 }
 
 pub fn wav_to_csv<P: AsRef<Path>>(wav_path: P, out_path: P) {
