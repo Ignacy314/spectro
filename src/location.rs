@@ -88,7 +88,7 @@ pub fn train_model<P: AsRef<Path>>(
     let y_test_plot = Scatter::new(x.clone(), y_test);
     let y_hat_plot = Scatter::new(x, y_hat).mode(Mode::Markers);
     plot.add_traces(vec![y_test_plot, y_hat_plot]);
-    plot.write_html(out_path.as_ref().join("html"));
+    plot.write_html(out_path.as_ref().with_extension("html"));
 
     let model_bytes = bincode::serialize(&model).unwrap();
     File::create(out_path)
