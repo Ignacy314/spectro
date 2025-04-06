@@ -1,5 +1,5 @@
 use clap::Parser;
-use spectro::{train_model, wav_to_csv};
+use spectro::{detection::train_model, wav_to_csv};
 
 #[derive(clap::Parser)]
 struct Args {
