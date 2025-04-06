@@ -1,5 +1,5 @@
 use clap::Parser;
-use spectro::{detection::train_model, wav_to_csv};
+use spectro::{detection::train_model, location, wav_to_csv};
 
 #[derive(clap::Parser)]
 struct Args {
@@ -8,9 +8,9 @@ struct Args {
     #[arg(short, long)]
     drone_csv: String,
     #[arg(short, long)]
-    bg_wav: String,
+    bg_wav: Option<String>,
     #[arg(short, long)]
-    bg_csv: String,
+    bg_csv: Option<String>,
     #[arg(short, long)]
     out: String,
 }
@@ -18,10 +18,11 @@ struct Args {
 fn main() {
     let args = Args::parse();
 
-    wav_to_csv(args.drone_wav, args.drone_csv.clone());
-    wav_to_csv(args.bg_wav, args.bg_csv.clone());
+    // wav_to_csv(args.drone_wav, args.drone_csv.clone());
+    // wav_to_csv(args.bg_wav, args.bg_csv.clone());
 
-    train_model(args.drone_csv, args.bg_csv, args.out);
+    // train_model(args.drone_csv, args.bg_csv, args.out);
+    location::train_model(args.drone_wav, args.drone_csv, args.out);
 
     // wav_to_csv(
     //     "/home/test/mnt/dane/29-03-25_2/combined/D4_29032025.wav",

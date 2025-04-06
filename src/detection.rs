@@ -56,8 +56,9 @@ pub fn train_model<P: AsRef<Path>>(
     let classifier = RandomForestClassifier::fit(
         &x_train,
         &y_train,
-        RandomForestClassifierParameters::default().with_seed(42),
-        // .with_n_trees(32)
+        RandomForestClassifierParameters::default()
+            .with_seed(42)
+            .with_n_trees(32),
     )
     .unwrap();
 

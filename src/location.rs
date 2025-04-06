@@ -20,6 +20,7 @@ pub fn train_model<P: AsRef<Path>>(
     csv_path: P,
     out_path: P,
 ) -> RandomForestRegressor<f32, f32, Array2<f32>, Vec<f32>> {
+    println!("reading data");
     let mut wav = hound::WavReader::open(wav_path).unwrap();
     let mut buffer: CircularBuffer<8192, i32> = CircularBuffer::new();
     let mut counter = 0;
@@ -65,13 +66,17 @@ pub fn train_model<P: AsRef<Path>>(
 
     let (x_train, x_test, y_train, y_test) = train_test_split(&x, &y, 0.2, true, Some(42));
 
+    println!("training");
     let model = RandomForestRegressor::fit(
         &x_train,
         &y_train,
-        RandomForestRegressorParameters::default().with_seed(42),
+        RandomForestRegressorParameters::default()
+            .with_seed(42)
+            .with_n_trees(16),
     )
     .unwrap();
 
+    println!("metrics");
     let y_hat = model.predict(&x_test).unwrap();
 
     let mse = RegressionMetrics::mean_squared_error().get_score(&y_test, &y_hat);
