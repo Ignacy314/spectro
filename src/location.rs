@@ -60,6 +60,7 @@ fn read_data<P: AsRef<Path>>(input_dir: P, module: i32) -> (Array2<f32>, Vec<f64
     });
 
     eprintln!("{flights_csvs:?}");
+    eprintln!("{flights_wavs:?}");
 
     let mut counter = 0;
     let mut x_data = Vec::new();
