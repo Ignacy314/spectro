@@ -30,7 +30,7 @@ struct Record {
 }
 
 fn read_data<P: AsRef<Path>>(input_dir: P, module: i32) -> (Array2<f32>, Vec<f64>) {
-    println!("reading data");
+    println!("reading data for module {module}");
 
     let module_str = module.to_string();
 
