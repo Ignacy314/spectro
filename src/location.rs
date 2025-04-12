@@ -55,18 +55,18 @@ fn read_data<P: AsRef<Path>>(input_dir: P, module: i32) -> (Array2<f32>, Vec<f64
         let b_num: i32 = re.captures(b.to_str().unwrap()).unwrap()[1]
             .parse()
             .unwrap();
-        eprintln!("{a_num} {b_num}");
+        // eprintln!("{a_num} {b_num}");
         a_num.cmp(&b_num)
     });
 
-    eprintln!("{flights_csvs:?}");
-    eprintln!("{flights_wavs:?}");
+    // eprintln!("{flights_csvs:?}");
+    // eprintln!("{flights_wavs:?}");
 
     let mut x_data = Vec::new();
     let mut y_data = Vec::new();
     let mut row_len = 0;
     for (wav_path, csv_path) in flights_wavs.iter().zip(flights_csvs.iter()) {
-        eprintln!("{wav_path:?} | {csv_path:?}");
+        // eprintln!("{wav_path:?} | {csv_path:?}");
         let mut buffer: CircularBuffer<8192, i32> = CircularBuffer::new();
         let mut counter = 0;
         let mut wav = hound::WavReader::open(wav_path).unwrap();
@@ -79,9 +79,9 @@ fn read_data<P: AsRef<Path>>(input_dir: P, module: i32) -> (Array2<f32>, Vec<f64
         }
 
         // to test if csv size and wav length more or less match
-        let n_csv_records = distances.len();
-        let n_wav_periods = wav.duration() / 2400;
-        eprintln!("{n_csv_records} {n_wav_periods}");
+        // let n_csv_records = distances.len();
+        // let n_wav_periods = wav.duration() / 2400;
+        // eprintln!("{n_csv_records} {n_wav_periods}");
 
         let mut dist_iter = distances.iter();
 
