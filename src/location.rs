@@ -62,31 +62,37 @@ fn read_data<P: AsRef<Path>>(input_dir: P, module: i32) -> (Array2<f32>, Vec<f64
     eprintln!("{flights_csvs:?}");
     eprintln!("{flights_wavs:?}");
 
-    let mut counter = 0;
     let mut x_data = Vec::new();
     let mut y_data = Vec::new();
     let mut row_len = 0;
     for (wav_path, csv_path) in flights_wavs.iter().zip(flights_csvs.iter()) {
+        eprintln!("{wav_path:?} | {csv_path:?}");
         let mut buffer: CircularBuffer<8192, i32> = CircularBuffer::new();
+        let mut counter = 0;
         let mut wav = hound::WavReader::open(wav_path).unwrap();
         let mut csv = csv::Reader::from_path(csv_path).unwrap();
 
+        let mut distances = Vec::new();
+        for result in csv.deserialize() {
+            let r: Record = result.unwrap();
+            distances.push(r.distance);
+        }
+
         // to test if csv size and wav length more or less match
-        let n_csv_records = csv.records().count();
+        let n_csv_records = distances.len();
         let n_wav_periods = wav.duration() / 2400;
         eprintln!("{n_csv_records} {n_wav_periods}");
 
-        let mut results = csv.deserialize();
+        let mut dist_iter = distances.iter();
 
         for s in wav.samples::<i32>() {
             let sample = s.unwrap();
             buffer.push_back(sample);
             counter += 1;
             if buffer.is_full() && counter >= 2400 {
-                let Some(res) = results.next() else {
+                let Some(distance) = dist_iter.next() else {
                     break;
                 };
-                let r: Record = res.unwrap();
                 counter = 0;
                 let (_freqs, values) = process_samples(buffer.iter());
                 if row_len != 0 {
@@ -94,7 +100,7 @@ fn read_data<P: AsRef<Path>>(input_dir: P, module: i32) -> (Array2<f32>, Vec<f64
                 }
                 row_len = values.len();
                 x_data.extend(values);
-                y_data.push(r.distance);
+                y_data.push(distance);
             }
         }
     }
