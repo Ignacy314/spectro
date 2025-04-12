@@ -133,7 +133,7 @@ pub fn train_model<P: AsRef<Path>>(
 
     let (x_train, x_test, y_train, y_test) = train_test_split(&x, &y, 0.2, false, Some(42));
 
-    println!("training");
+    println!("training module {module}");
     let model = RandomForestRegressor::fit(
         &x_train,
         &y_train,
