@@ -100,7 +100,7 @@ fn read_data<P: AsRef<Path>>(input_dir: P, module: i32) -> (Array2<f32>, Vec<f64
                 }
                 row_len = values.len();
                 x_data.extend(values);
-                y_data.push(distance);
+                y_data.push(*distance);
             }
         }
     }
