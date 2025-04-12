@@ -1,8 +1,10 @@
 use plotly::{Plot, Scatter, common::Mode};
+use regex::Regex;
+use serde::Deserialize;
 use std::{
     fs::File,
     io::{BufReader, Write},
-    path::Path,
+    path::{Path, PathBuf},
 };
 
 use circular_buffer::CircularBuffer;
@@ -16,37 +18,84 @@ use smartcore::{
 
 use crate::process_samples;
 
-pub fn train_model<P: AsRef<Path>>(
-    wav_path: P,
-    csv_path: P,
-    out_path: P,
-) -> RandomForestRegressor<f32, f32, Array2<f32>, Vec<f32>> {
+#[allow(unused)]
+#[derive(Deserialize)]
+struct Record {
+    clock: f32,
+    lon: f64,
+    lat: f64,
+    alt: f64,
+    rfc: String,
+    distance: f64,
+}
+
+fn read_data<P: AsRef<Path>>(input_dir: P, module: i32) -> (Array2<f32>, Vec<f64>) {
     println!("reading data");
-    let mut wav = hound::WavReader::open(wav_path).unwrap();
-    let mut buffer: CircularBuffer<8192, i32> = CircularBuffer::new();
+
+    let module_str = module.to_string();
+
+    let flights = std::fs::read_dir(input_dir.as_ref().join("umc")).unwrap();
+    let flights_wavs: Vec<PathBuf> = flights
+        .map(|f| f.unwrap().path().join(&module_str))
+        .flat_map(|p| std::fs::read_dir(p).unwrap().map(|d| d.unwrap().path()))
+        .collect();
+    let mut flights_csvs: Vec<PathBuf> =
+        std::fs::read_dir(input_dir.as_ref().join("module_csvs").join(&module_str))
+            .unwrap()
+            .map(|d| d.unwrap().path())
+            .collect();
+
+    assert_eq!(flights_wavs.len(), flights_csvs.len());
+
+    let re = Regex::new(r".*(\d+)\.csv$").unwrap();
+    flights_csvs.sort_unstable_by(|a, b| {
+        let a_num: i32 = re.captures(a.to_str().unwrap()).unwrap()[1]
+            .parse()
+            .unwrap();
+        let b_num: i32 = re.captures(b.to_str().unwrap()).unwrap()[1]
+            .parse()
+            .unwrap();
+        eprintln!("{a_num} {b_num}");
+        a_num.cmp(&b_num)
+    });
+
+    eprintln!("{flights_csvs:?}");
+
     let mut counter = 0;
     let mut x_data = Vec::new();
-    let mut row_len = 0;
-    for s in wav.samples::<i32>() {
-        let sample = s.unwrap();
-        buffer.push_back(sample);
-        counter += 1;
-        if buffer.is_full() && counter >= 2400 {
-            counter = 0;
-            let (_freqs, values) = process_samples(buffer.iter());
-            if row_len != 0 {
-                assert_eq!(row_len, values.len());
-            }
-            row_len = values.len();
-            x_data.extend(values);
-        }
-    }
-
-    let mut y_reader = csv::Reader::from_path(csv_path).unwrap();
     let mut y_data = Vec::new();
-    for result in y_reader.deserialize() {
-        let (_, dist): (f32, f32) = result.unwrap();
-        y_data.push(dist);
+    let mut row_len = 0;
+    for (wav_path, csv_path) in flights_wavs.iter().zip(flights_csvs.iter()) {
+        let mut buffer: CircularBuffer<8192, i32> = CircularBuffer::new();
+        let mut wav = hound::WavReader::open(wav_path).unwrap();
+        let mut csv = csv::Reader::from_path(csv_path).unwrap();
+
+        // to test if csv size and wav length more or less match
+        let n_csv_records = csv.records().count();
+        let n_wav_periods = wav.duration() / 2400;
+        eprintln!("{n_csv_records} {n_wav_periods}");
+
+        let mut results = csv.deserialize();
+
+        for s in wav.samples::<i32>() {
+            let sample = s.unwrap();
+            buffer.push_back(sample);
+            counter += 1;
+            if buffer.is_full() && counter >= 2400 {
+                let Some(res) = results.next() else {
+                    break;
+                };
+                let r: Record = res.unwrap();
+                counter = 0;
+                let (_freqs, values) = process_samples(buffer.iter());
+                if row_len != 0 {
+                    assert_eq!(row_len, values.len());
+                }
+                row_len = values.len();
+                x_data.extend(values);
+                y_data.push(r.distance);
+            }
+        }
     }
 
     let n_y = y_data.len();
@@ -64,6 +113,16 @@ pub fn train_model<P: AsRef<Path>>(
 
     let x = Array2::from_shape_vec((n, row_len), x_data).unwrap();
     let y = y_data;
+
+    (x, y)
+}
+
+pub fn train_model<P: AsRef<Path>>(
+    input_dir: P,
+    module: i32,
+    out_path: P,
+) -> RandomForestRegressor<f32, f64, Array2<f32>, Vec<f64>> {
+    let (x, y) = read_data(input_dir, module);
 
     let (x_train, x_test, y_train, y_test) = train_test_split(&x, &y, 0.2, false, Some(42));
 
@@ -101,61 +160,21 @@ pub fn train_model<P: AsRef<Path>>(
 
 pub fn load_model<P: AsRef<Path>>(
     model_path: P,
-) -> RandomForestRegressor<f32, f32, Array2<f32>, Vec<f32>> {
+) -> RandomForestRegressor<f32, f64, Array2<f32>, Vec<f64>> {
     bincode::deserialize_from(BufReader::new(File::open(model_path).unwrap())).unwrap()
 }
 
-pub fn test_avg<P: AsRef<Path>>(model_path: P, wav_path: P, csv_path: P, plot_path: P) {
+pub fn test_avg<P: AsRef<Path>>(model_path: P, input_dir: P, module: i32, plot_path: P) {
     let model = load_model(model_path);
 
-    let mut csv_reader = csv::Reader::from_path(csv_path).unwrap();
-    let mut y = Vec::new();
-    for r in csv_reader.deserialize() {
-        let (_, dist): (f32, f32) = r.unwrap();
-        y.push(dist);
-    }
-
-    let mut wav = hound::WavReader::open(wav_path).unwrap();
-    let mut buffer: CircularBuffer<8192, i32> = CircularBuffer::new();
-    let mut counter = 0;
-    let mut x_data = Vec::new();
-    let mut row_len = 0;
-    for s in wav.samples::<i32>() {
-        let sample = s.unwrap();
-        buffer.push_back(sample);
-        counter += 1;
-        if buffer.is_full() && counter >= 2400 {
-            counter = 0;
-            let (_freqs, values) = process_samples(buffer.iter());
-            if row_len != 0 {
-                assert_eq!(row_len, values.len());
-            }
-            row_len = values.len();
-            x_data.extend(values);
-        }
-    }
-
-    let n_y = y.len();
-    let mut n = x_data.len() / row_len;
-    match n_y.cmp(&n) {
-        std::cmp::Ordering::Less => {
-            x_data.truncate(n_y * row_len);
-            n = n_y;
-        }
-        std::cmp::Ordering::Greater => {
-            y.truncate(n);
-        }
-        _ => {}
-    }
-
-    let x = Array2::from_shape_vec((n, row_len), x_data).unwrap();
+    let (x, y) = read_data(input_dir, module);
 
     let y_hat = model.predict(&x).unwrap();
 
-    let y_avg: Vec<f32> = y.windows(20).map(|w| w.sum() / w.len() as f32).collect();
-    let y_hat_avg: Vec<f32> = y_hat
+    let y_avg: Vec<f64> = y.windows(20).map(|w| w.sum() / w.len() as f64).collect();
+    let y_hat_avg: Vec<f64> = y_hat
         .windows(20)
-        .map(|w| w.sum() / w.len() as f32)
+        .map(|w| w.sum() / w.len() as f64)
         .collect();
 
     let x: Vec<usize> = (0..y_avg.len()).collect();

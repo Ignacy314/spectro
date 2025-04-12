@@ -1,65 +1,68 @@
-use clap::Parser;
-#[allow(unused_imports)]
-use spectro::{detection::train_model, location, wav_to_csv};
+use clap::{Parser, Subcommand};
 
-#[derive(clap::Parser)]
-struct Args {
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+#[command(propagate_version = true)]
+struct Cli {
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    Location(LocationArgs),
+    LocationTest(LocationTestArgs),
+    Detection(DetectionArgs),
+}
+
+#[derive(clap::Args)]
+struct LocationArgs {
+    #[arg(short, long)]
+    input_dir: String,
+    #[arg(short, long)]
+    module: i32,
+    #[arg(short, long)]
+    out_file: String,
+}
+#[derive(clap::Args)]
+struct LocationTestArgs {
+    #[arg(short, long)]
+    model_file: String,
+    #[arg(short, long)]
+    input_dir: String,
+    #[arg(short, long)]
+    module: i32,
+    #[arg(short, long)]
+    plot_path: String,
+}
+
+#[derive(clap::Args)]
+struct DetectionArgs {
     #[arg(short, long)]
     drone_wav: String,
     #[arg(short, long)]
-    drone_csv: String,
+    bg_wav: String,
     #[arg(short, long)]
-    bg_wav: Option<String>,
-    #[arg(short, long)]
-    bg_csv: Option<String>,
-    #[arg(short, long)]
-    model: Option<String>,
-    #[arg(short, long)]
-    out: String,
+    out_file: String,
 }
 
 fn main() {
-    let args = Args::parse();
+    let cli = Cli::parse();
 
-    // wav_to_csv(args.drone_wav, args.drone_csv.clone());
-    // wav_to_csv(args.bg_wav, args.bg_csv.clone());
-
-    // train_model(args.drone_csv, args.bg_csv, args.out);
-    // location::train_model(args.drone_wav, args.drone_csv, args.out);
-    location::test_avg(args.model.as_ref().unwrap(), &args.drone_wav, &args.drone_csv, &args.out);
-
-    // wav_to_csv(
-    //     "/home/test/mnt/dane/29-03-25_2/combined/D4_29032025.wav",
-    //     "/home/test/mnt/dane/29-03-25_2/rust_csvs/D4_29032025.csv",
-    // );
-    // wav_to_csv(
-    //     "/home/test/mnt/dane/29-03-25_2/combined/B4_29032025.wav",
-    //     "/home/test/mnt/dane/29-03-25_2/rust_csvs/B4_29032025.csv",
-    // );
-    //
-    // let _model = train_model(
-    //     "/home/test/mnt/dane/29-03-25_2/rust_csvs/D4_29032025.csv",
-    //     "/home/test/mnt/dane/29-03-25_2/rust_csvs/B4_29032025.csv",
-    //     "/home/test/mnt/dane/29-03-25_2/rust_csvs/DB4_29032025.model",
-    // );
-
-    // wav_to_csv(
-    //     "/home/iluvatar/andros/models/D4_29032025.wav",
-    //     "/home/iluvatar/andros/models/D4_29032025.csv",
-    // );
-    // wav_to_csv(
-    //     "/home/iluvatar/andros/models/B4_29032025.wav",
-    //     "/home/iluvatar/andros/models/B4_29032025.csv",
-    // );
-
-    // let _model = train_model(
-    //     "/home/iluvatar/andros/models/old/D4_29032025.csv",
-    //     "/home/iluvatar/andros/models/old/B4_29032025.csv",
-    //     "/home/iluvatar/andros/models/old/DB4_29032025.model",
-    // );
-    // let _model = train_model(
-    //     "/home/iluvatar/andros/models/D4_29032025.csv",
-    //     "/home/iluvatar/andros/models/B4_29032025.csv",
-    //     "/home/iluvatar/andros/models/DB4_29032025.model",
-    // );
+    match cli.command {
+        Commands::Detection(args) => {
+            spectro::detection::train_model(args.drone_wav, args.bg_wav, args.out_file);
+        }
+        Commands::Location(args) => {
+            spectro::location::train_model(args.input_dir, args.module, args.out_file);
+        }
+        Commands::LocationTest(args) => {
+            spectro::location::test_avg(
+                args.model_file,
+                args.input_dir,
+                args.module,
+                args.plot_path,
+            );
+        }
+    }
 }
