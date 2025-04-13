@@ -3,7 +3,7 @@ use regex::Regex;
 use serde::Deserialize;
 use std::{
     fs::File,
-    io::{BufReader, Write},
+    io::{BufReader, BufWriter, Write},
     path::{Path, PathBuf},
 };
 
@@ -122,6 +122,20 @@ fn read_data<P: AsRef<Path>>(input_dir: P, module: i32) -> (Array2<f32>, Vec<f64
     let y = y_data;
 
     (x, y)
+}
+
+pub fn generate_data_csv<P: AsRef<Path>>(input_dir: P, module: i32, out_path: P) {
+    let (x, y) = read_data(input_dir, module);
+    let mut csv = BufWriter::new(File::create(out_path).unwrap());
+    for (y, xs) in y.iter().zip(x.outer_iter()) {
+        let n_xs = xs.len();
+        write!(csv, "{y},").unwrap();
+        let x_vec = xs.to_vec();
+        for x in &x_vec[0..(n_xs - 1)] {
+            write!(csv, "{x},").unwrap();
+        }
+        writeln!(csv, "{}", x_vec[n_xs - 1]).unwrap();
+    }
 }
 
 pub fn train_model<P: AsRef<Path>>(
