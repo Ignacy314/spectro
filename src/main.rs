@@ -12,6 +12,7 @@ struct Cli {
 enum Commands {
     Location(LocationArgs),
     LocationTest(LocationTestArgs),
+    LocationData(LocationDataArgs),
     Detection(DetectionArgs),
 }
 
@@ -24,6 +25,17 @@ struct LocationArgs {
     #[arg(short, long)]
     out_file: String,
 }
+
+#[derive(clap::Args)]
+struct LocationDataArgs {
+    #[arg(short, long)]
+    input_dir: String,
+    #[arg(short, long)]
+    module: i32,
+    #[arg(short, long)]
+    out_file: String,
+}
+
 #[derive(clap::Args)]
 struct LocationTestArgs {
     #[arg(short, long)]
@@ -55,6 +67,9 @@ fn main() {
         }
         Commands::Location(args) => {
             spectro::location::train_model(args.input_dir, args.module, args.out_file);
+        }
+        Commands::LocationData(args) => {
+            spectro::location::generate_data_csv(args.input_dir, args.module, args.out_file);
         }
         Commands::LocationTest(args) => {
             spectro::location::test_avg(
