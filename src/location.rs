@@ -69,7 +69,6 @@ fn read_data<P: AsRef<Path>>(
         let b_num: i32 = re_wav.captures(b.to_str().unwrap()).unwrap()[1]
             .parse()
             .unwrap();
-        eprintln!("{a_num}, {b_num}");
         a_num.cmp(&b_num)
     });
 
@@ -80,12 +79,8 @@ fn read_data<P: AsRef<Path>>(
         let b_num: i32 = re_csv.captures(b.to_str().unwrap()).unwrap()[1]
             .parse()
             .unwrap();
-        eprintln!("{a_num}, {b_num}");
         a_num.cmp(&b_num)
     });
-
-    eprintln!("{flights_csvs:?}");
-    eprintln!("{flights_wavs:?}");
 
     let mut x_data = Vec::new();
     let mut y_data = Vec::new();
