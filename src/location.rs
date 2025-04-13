@@ -31,7 +31,7 @@ fn read_data<P: AsRef<Path>>(input_dir: P, module: i32) -> (Array2<f32>, Vec<f64
     let module_str = module.to_string();
 
     let flights = std::fs::read_dir(input_dir.as_ref().join("umc")).unwrap();
-    let flights_wavs: Vec<PathBuf> = flights
+    let mut flights_wavs: Vec<PathBuf> = flights
         .map(|f| f.unwrap().path().join(&module_str))
         .flat_map(|p| std::fs::read_dir(p).unwrap().map(|d| d.unwrap().path()))
         .collect();
@@ -43,6 +43,17 @@ fn read_data<P: AsRef<Path>>(input_dir: P, module: i32) -> (Array2<f32>, Vec<f64
 
     assert_eq!(flights_wavs.len(), flights_csvs.len());
 
+    let re = Regex::new(r".*(\d+)\.wav$").unwrap();
+    flights_wavs.sort_unstable_by(|a, b| {
+        let a_num: i32 = re.captures(a.to_str().unwrap()).unwrap()[1]
+            .parse()
+            .unwrap();
+        let b_num: i32 = re.captures(b.to_str().unwrap()).unwrap()[1]
+            .parse()
+            .unwrap();
+        a_num.cmp(&b_num)
+    });
+
     let re = Regex::new(r".*(\d+)\.csv$").unwrap();
     flights_csvs.sort_unstable_by(|a, b| {
         let a_num: i32 = re.captures(a.to_str().unwrap()).unwrap()[1]
@@ -51,7 +62,6 @@ fn read_data<P: AsRef<Path>>(input_dir: P, module: i32) -> (Array2<f32>, Vec<f64
         let b_num: i32 = re.captures(b.to_str().unwrap()).unwrap()[1]
             .parse()
             .unwrap();
-        // eprintln!("{a_num} {b_num}");
         a_num.cmp(&b_num)
     });
 
