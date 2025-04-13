@@ -16,7 +16,7 @@ dfs = [pd.read_csv(csv, header=None) for csv in data_csvs]
 X = pd.concat([df.iloc[:, 1:] for df in dfs], axis=0, ignore_index=True)
 y = pd.concat([df.iloc[:, 1] for df in dfs], axis=0, ignore_index=True)
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.9)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.98)
 print(X_train)
 
 rf = RandomForestRegressor(random_state=42, n_jobs=-1, verbose=1)
@@ -28,12 +28,12 @@ rf.fit(X_train, y_train)
 # r2 = r2_score(y_test, y_pred)
 # print(f"MSE: {mse} | R2: {r2}")
 
-onx = skl2onnx.convert_sklearn(
-    rf,
-    initial_types=[("input", FloatTensorType([None, 682]))],
-    final_types=[("variable", FloatTensorType([None, 1]))],
-    # options={'zipmap': False},
-)
-# onx = to_onnx(rf, X[:1].astype(np.float32), options={"zipmap": False})
+# onx = skl2onnx.convert_sklearn(
+#     rf,
+#     initial_types=[("input", FloatTensorType([None, 682]))],
+#     final_types=[("variable", FloatTensorType([None, 1]))],
+#     # options={'zipmap': False},
+# )
+onx = to_onnx(rf, X[:1].astype(np.float32), options={"zipmap": False})
 with open(sys.argv[-1], "wb") as f:
     f.write(onx.SerializeToString())

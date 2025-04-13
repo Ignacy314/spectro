@@ -16,7 +16,7 @@ use smartcore::{
     model_selection::train_test_split,
 };
 
-use tract_onnx::{model, prelude::*};
+use tract_onnx::prelude::*;
 
 use crate::process_samples;
 
