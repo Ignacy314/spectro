@@ -37,7 +37,7 @@ rf.fit(X_train, y_train)
 # onx = to_onnx(rf, X[:1].astype(np.float32), options={"zipmap": False})
 onx = to_onnx(
     rf,
-    X_train,
+    X.iloc[0],
     # initial_types=[("input", FloatTensorType([None, 682]))],
     # options={"zipmap": False},
 )
