@@ -28,7 +28,7 @@ struct Record {
 fn read_data<P: AsRef<Path>>(
     input_dir: P,
     module: i32,
-    bad_flights: Vec<i32>,
+    ok_flights: Vec<i32>,
 ) -> (Array2<f32>, Vec<f64>) {
     println!("reading data for module {module}");
 
@@ -45,7 +45,7 @@ fn read_data<P: AsRef<Path>>(
             let num: i32 = re_wav.captures(p.to_str().unwrap()).unwrap()[1]
                 .parse()
                 .unwrap();
-            !bad_flights.iter().any(|n| *n == num + 1)
+            ok_flights.iter().any(|n| *n == num + 1)
         })
         .collect();
     let mut flights_csvs: Vec<PathBuf> =
@@ -56,7 +56,7 @@ fn read_data<P: AsRef<Path>>(
                 let num: i32 = re_csv.captures(p.to_str().unwrap()).unwrap()[1]
                     .parse()
                     .unwrap();
-                !bad_flights.iter().any(|n| *n == num)
+                ok_flights.iter().any(|n| *n == num)
             })
             .collect();
 
@@ -153,9 +153,9 @@ pub fn generate_data_csv<P: AsRef<Path>>(
     input_dir: P,
     module: i32,
     out_path: P,
-    bad_flights: Vec<i32>,
+    ok_flights: Vec<i32>,
 ) {
-    let (x, y) = read_data(input_dir, module, bad_flights);
+    let (x, y) = read_data(input_dir, module, ok_flights);
     let mut csv = BufWriter::new(File::create(out_path).unwrap());
     for (y, xs) in y.iter().zip(x.outer_iter()) {
         let n_xs = xs.len();

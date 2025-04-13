@@ -35,7 +35,7 @@ struct LocationDataArgs {
     #[arg(short, long)]
     out_file: String,
     #[arg(short, long)]
-    bad_flights: Vec<i32>,
+    ok_flights: Vec<i32>,
 }
 
 #[derive(clap::Args)]
@@ -73,7 +73,7 @@ fn main() {
                 args.input_dir,
                 args.module,
                 args.out_file,
-                args.bad_flights,
+                args.ok_flights,
             );
         }
         Commands::LocationTest(args) => {
