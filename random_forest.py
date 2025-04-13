@@ -14,7 +14,7 @@ dfs = [pd.read_csv(csv) for csv in data_csvs]
 X = pd.concat([df.iloc[:, 1:] for df in dfs], axis=0, ignore_index=True)
 y = pd.concat([df.iloc[:, 1] for df in dfs], axis=0, ignore_index=True)
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.99)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.9)
 
 rf = RandomForestRegressor(random_state=42, n_jobs=-1, verbose=1)
 rf.fit(X_train, y_train)
