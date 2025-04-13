@@ -1,4 +1,4 @@
-use ndarray::{Array, Array2, ArrayViewD};
+use ndarray::{Array, Array2, ArrayViewD, Ix1};
 use ort::{inputs, session::Session, value::Tensor};
 use plotly::{Plot, Scatter, common::Mode};
 use regex::Regex;
@@ -222,8 +222,23 @@ pub fn test_onnx<P: AsRef<Path>>(model_path: P, input_csv: P, plot_path: P) {
     let outputs = model.run(inputs![x].unwrap()).unwrap();
 
     let y_pred: ArrayViewD<f64> = outputs["variable"].try_extract_tensor().unwrap();
+    let y_pred = y_pred.into_dimensionality::<Ix1>().unwrap();
     println!("number of outputs: {}", y_pred.len());
     println!("{}", y_pred);
+
+    let y_avg: Vec<f64> = y.windows(20).map(|w| w.sum() / w.len() as f64).collect();
+    let y_pred_avg: Vec<f64> = y_pred
+        .to_vec()
+        .windows(20)
+        .map(|w| w.sum() / w.len() as f64)
+        .collect();
+
+    let x: Vec<usize> = (0..y_avg.len()).collect();
+    let mut plot = Plot::new();
+    let y_test_plot = Scatter::new(x.clone(), y_avg);
+    let y_hat_plot = Scatter::new(x, y_pred_avg).mode(Mode::Markers);
+    plot.add_traces(vec![y_hat_plot, y_test_plot]);
+    plot.write_html(plot_path);
 
     // let x_tract =
     //     tract_ndarray::Array2::from_shape_vec((x_shape[0], x_shape[1]), x.into_raw_vec()).unwrap();
