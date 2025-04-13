@@ -139,6 +139,21 @@ pub fn generate_data_csv<P: AsRef<Path>>(input_dir: P, module: i32, out_path: P)
     }
 }
 
+fn read_data_csv<P: AsRef<Path>>(csv_path: P) -> (Vec<Vec<f32>>, Vec<f64>) {
+    let mut csv = csv::Reader::from_path(csv_path).unwrap();
+
+    let mut x = Vec::new();
+    let mut y = Vec::new();
+
+    for result in csv.deserialize() {
+        let (y_data, x_data): (f64, Vec<f32>) = result.unwrap();
+        y.push(y_data);
+        x.push(x_data);
+    }
+
+    (x, y)
+}
+
 // pub fn train_model<P: AsRef<Path>>(
 //     input_dir: P,
 //     module: i32,
@@ -193,10 +208,11 @@ pub fn load_onnx<P: AsRef<Path>>(model_path: P) -> Session {
         .unwrap()
 }
 
-pub fn test_onnx<P: AsRef<Path>>(model_path: P, input_dir: P, module: i32, plot_path: P) {
+pub fn test_onnx<P: AsRef<Path>>(model_path: P, input_csv: P, plot_path: P) {
     let model = load_onnx(model_path);
 
-    let (x, y) = read_data(input_dir, module);
+    let (x, y) = read_data_csv(input_csv);
+    let x = Array2::from(x);
 
     println!("testing onnx model");
 
