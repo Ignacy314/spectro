@@ -34,7 +34,7 @@ struct LocationDataArgs {
     module: i32,
     #[arg(short, long)]
     out_file: String,
-    #[arg(short, long)]
+    #[arg(short, long, value_parser, num_args = 0.., value_delimiter = ',')]
     bad_flights: Vec<i32>,
 }
 
