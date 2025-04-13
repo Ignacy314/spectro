@@ -16,7 +16,7 @@ X = df.iloc[:, 1:]
 y = df.iloc[:, 0]
 
 X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42
+    X, y, test_size=0.6, random_state=42
 )
 
 rf = RandomForestRegressor(n_estimators=64, random_state=42, n_jobs=-1, verbose=1)
