@@ -1,5 +1,6 @@
 import sys
 
+import joblib
 import numpy as np
 import pandas as pd
 from skl2onnx import to_onnx
@@ -15,7 +16,7 @@ y = pd.concat([df.iloc[:, 1] for df in dfs], axis=0, ignore_index=True)
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
-rf = RandomForestRegressor()
+rf = RandomForestRegressor(random_state=42, n_jobs=-1)
 rf.fit(X_train, y_train)
 
 y_pred = rf.predict(X_test)
