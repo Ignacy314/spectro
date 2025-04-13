@@ -25,6 +25,6 @@ rf.fit(X_train, y_train)
 # r2 = r2_score(y_test, y_pred)
 # print(f"MSE: {mse} | R2: {r2}")
 
-onx = to_onnx(rf, X[0].astype(np.float32), options={"zipmap": False})
+onx = to_onnx(rf, X_train[0].astype(np.float32), options={"zipmap": False})
 with open(sys.argv[-1], "wb") as f:
     f.write(onx.SerializeToString())
