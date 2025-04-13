@@ -1,3 +1,5 @@
+use ndarray::Array2;
+use ort::{inputs, session::Session, value::Tensor};
 use plotly::{Plot, Scatter, common::Mode};
 use regex::Regex;
 use serde::Deserialize;
@@ -8,15 +10,12 @@ use std::{
 };
 
 use circular_buffer::CircularBuffer;
-use ndarray::Array2;
 use smartcore::{
     ensemble::random_forest_regressor::{RandomForestRegressor, RandomForestRegressorParameters},
     linalg::basic::arrays::ArrayView1,
     metrics::{Metrics, RegressionMetrics},
     model_selection::train_test_split,
 };
-
-use tract_onnx::prelude::*;
 
 use crate::process_samples;
 
@@ -140,65 +139,57 @@ pub fn generate_data_csv<P: AsRef<Path>>(input_dir: P, module: i32, out_path: P)
     }
 }
 
-pub fn train_model<P: AsRef<Path>>(
-    input_dir: P,
-    module: i32,
-    out_path: P,
-) -> RandomForestRegressor<f32, f64, Array2<f32>, Vec<f64>> {
-    let (x, y) = read_data(input_dir, module);
+// pub fn train_model<P: AsRef<Path>>(
+//     input_dir: P,
+//     module: i32,
+//     out_path: P,
+// ) -> RandomForestRegressor<f32, f64, Array2<f32>, Vec<f64>> {
+//     let (x, y) = read_data(input_dir, module);
+//
+//     let (x_train, x_test, y_train, y_test) = train_test_split(&x, &y, 0.2, false, Some(42));
+//
+//     println!("training module {module}");
+//     let model = RandomForestRegressor::fit(
+//         &x_train,
+//         &y_train,
+//         RandomForestRegressorParameters::default()
+//             .with_seed(42)
+//             .with_n_trees(32),
+//     )
+//     .unwrap();
+//
+//     println!("metrics");
+//     let y_hat = model.predict(&x_test).unwrap();
+//
+//     let mse = RegressionMetrics::mean_squared_error().get_score(&y_test, &y_hat);
+//     let r2 = RegressionMetrics::r2().get_score(&y_test, &y_hat);
+//     println!("MSE: {mse} | R2: {r2}");
+//
+//     let x: Vec<usize> = (0..y_test.len()).collect();
+//     let mut plot = Plot::new();
+//     let y_test_plot = Scatter::new(x.clone(), y_test);
+//     let y_hat_plot = Scatter::new(x, y_hat).mode(Mode::Markers);
+//     plot.add_traces(vec![y_hat_plot, y_test_plot]);
+//     plot.write_html(out_path.as_ref().with_extension("html"));
+//
+//     let model_bytes = bincode::serialize(&model).unwrap();
+//     File::create(out_path)
+//         .and_then(|mut f| f.write_all(&model_bytes))
+//         .expect("Can not persist the model");
+//
+//     model
+// }
 
-    let (x_train, x_test, y_train, y_test) = train_test_split(&x, &y, 0.2, false, Some(42));
+// pub fn load_model<P: AsRef<Path>>(
+//     model_path: P,
+// ) -> RandomForestRegressor<f32, f64, Array2<f32>, Vec<f64>> {
+//     bincode::deserialize_from(BufReader::new(File::open(model_path).unwrap())).unwrap()
+// }
 
-    println!("training module {module}");
-    let model = RandomForestRegressor::fit(
-        &x_train,
-        &y_train,
-        RandomForestRegressorParameters::default()
-            .with_seed(42)
-            .with_n_trees(32),
-    )
-    .unwrap();
-
-    println!("metrics");
-    let y_hat = model.predict(&x_test).unwrap();
-
-    let mse = RegressionMetrics::mean_squared_error().get_score(&y_test, &y_hat);
-    let r2 = RegressionMetrics::r2().get_score(&y_test, &y_hat);
-    println!("MSE: {mse} | R2: {r2}");
-
-    let x: Vec<usize> = (0..y_test.len()).collect();
-    let mut plot = Plot::new();
-    let y_test_plot = Scatter::new(x.clone(), y_test);
-    let y_hat_plot = Scatter::new(x, y_hat).mode(Mode::Markers);
-    plot.add_traces(vec![y_hat_plot, y_test_plot]);
-    plot.write_html(out_path.as_ref().with_extension("html"));
-
-    let model_bytes = bincode::serialize(&model).unwrap();
-    File::create(out_path)
-        .and_then(|mut f| f.write_all(&model_bytes))
-        .expect("Can not persist the model");
-
-    model
-}
-
-pub fn load_model<P: AsRef<Path>>(
-    model_path: P,
-) -> RandomForestRegressor<f32, f64, Array2<f32>, Vec<f64>> {
-    bincode::deserialize_from(BufReader::new(File::open(model_path).unwrap())).unwrap()
-}
-
-#[allow(clippy::type_complexity)]
-pub fn load_onnx<P: AsRef<Path>>(
-    model_path: P,
-) -> SimplePlan<TypedFact, Box<dyn TypedOp>, Graph<TypedFact, Box<dyn TypedOp>>> {
-    tract_onnx::onnx()
-        .model_for_path(model_path)
+pub fn load_onnx<P: AsRef<Path>>(model_path: P) -> Session {
+    Session::builder()
         .unwrap()
-        .with_input_fact(0, f32::fact([682]).into())
-        .unwrap()
-        .into_optimized()
-        .unwrap()
-        .into_runnable()
+        .commit_from_file(model_path)
         .unwrap()
 }
 
@@ -207,33 +198,35 @@ pub fn test_onnx<P: AsRef<Path>>(model_path: P, input_dir: P, module: i32, plot_
 
     let (x, y) = read_data(input_dir, module);
 
-    let x_shape = x.shape();
-    let x_tract =
-        tract_ndarray::Array2::from_shape_vec((x_shape[0], x_shape[1]), x.into_raw_vec()).unwrap();
-    let x_tensor: Tensor = x_tract.into();
+    let outputs = model.run(inputs![x].unwrap()).unwrap();
+    println!("{:?}", outputs);
 
-    let result = model.run(tvec!(x_tensor.into())).unwrap();
-
-    println!("{:?}", result[0]);
+    // let x_tract =
+    //     tract_ndarray::Array2::from_shape_vec((x_shape[0], x_shape[1]), x.into_raw_vec()).unwrap();
+    // let x_tensor: Tensor = x_tract.into();
+    //
+    // let result = model.run(tvec!(x_tensor.into())).unwrap();
+    //
+    // println!("{:?}", result[0]);
 }
 
-pub fn test_avg<P: AsRef<Path>>(model_path: P, input_dir: P, module: i32, plot_path: P) {
-    let model = load_model(model_path);
-
-    let (x, y) = read_data(input_dir, module);
-
-    let y_hat = model.predict(&x).unwrap();
-
-    let y_avg: Vec<f64> = y.windows(20).map(|w| w.sum() / w.len() as f64).collect();
-    let y_hat_avg: Vec<f64> = y_hat
-        .windows(20)
-        .map(|w| w.sum() / w.len() as f64)
-        .collect();
-
-    let x: Vec<usize> = (0..y_avg.len()).collect();
-    let mut plot = Plot::new();
-    let y_test_plot = Scatter::new(x.clone(), y_avg);
-    let y_hat_plot = Scatter::new(x, y_hat_avg).mode(Mode::Markers);
-    plot.add_traces(vec![y_hat_plot, y_test_plot]);
-    plot.write_html(plot_path);
-}
+// pub fn test_avg<P: AsRef<Path>>(model_path: P, input_dir: P, module: i32, plot_path: P) {
+//     let model = load_model(model_path);
+//
+//     let (x, y) = read_data(input_dir, module);
+//
+//     let y_hat = model.predict(&x).unwrap();
+//
+//     let y_avg: Vec<f64> = y.windows(20).map(|w| w.sum() / w.len() as f64).collect();
+//     let y_hat_avg: Vec<f64> = y_hat
+//         .windows(20)
+//         .map(|w| w.sum() / w.len() as f64)
+//         .collect();
+//
+//     let x: Vec<usize> = (0..y_avg.len()).collect();
+//     let mut plot = Plot::new();
+//     let y_test_plot = Scatter::new(x.clone(), y_avg);
+//     let y_hat_plot = Scatter::new(x, y_hat_avg).mode(Mode::Markers);
+//     plot.add_traces(vec![y_hat_plot, y_test_plot]);
+//     plot.write_html(plot_path);
+// }

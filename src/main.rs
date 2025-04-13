@@ -63,10 +63,10 @@ fn main() {
 
     match cli.command {
         Commands::Detection(args) => {
-            spectro::detection::train_model(args.drone_wav, args.bg_wav, args.out_file);
+            // spectro::detection::train_model(args.drone_wav, args.bg_wav, args.out_file);
         }
         Commands::Location(args) => {
-            spectro::location::train_model(args.input_dir, args.module, args.out_file);
+            // spectro::location::train_model(args.input_dir, args.module, args.out_file);
         }
         Commands::LocationData(args) => {
             spectro::location::generate_data_csv(args.input_dir, args.module, args.out_file);
