@@ -6,6 +6,7 @@ use std::{
 
 use ndarray::*;
 use ndarray_conv::ConvExt;
+use ort::session::Session;
 use spectrum_analyzer::{samples_fft_to_spectrum, windows::hann_window};
 
 pub mod detection;
@@ -81,4 +82,11 @@ pub fn wav_to_csv<P: AsRef<Path>>(wav_path: P, out_path: P) {
             csv.flush().unwrap();
         }
     }
+}
+
+pub fn load_onnx<P: AsRef<Path>>(model_path: P) -> Session {
+    Session::builder()
+        .unwrap()
+        .commit_from_file(model_path)
+        .unwrap()
 }

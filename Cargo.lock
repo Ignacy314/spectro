@@ -842,7 +842,6 @@ dependencies = [
  "portable-atomic-util",
  "rawpointer",
  "rayon",
- "serde",
 ]
 
 [[package]]

@@ -1,5 +1,5 @@
 use ndarray::{Array, Array2, ArrayViewD};
-use ort::{inputs, session::Session};
+use ort::inputs;
 use plotly::{Plot, Scatter, common::Mode};
 use regex::Regex;
 use serde::Deserialize;
@@ -12,7 +12,7 @@ use std::{
 
 use circular_buffer::CircularBuffer;
 
-use crate::process_samples;
+use crate::{load_onnx, process_samples};
 
 #[allow(unused)]
 #[derive(Deserialize)]
@@ -198,13 +198,6 @@ fn read_data_csv<P: AsRef<Path>>(csv_path: P) -> (Vec<Vec<f32>>, Vec<f64>) {
 // ) -> RandomForestRegressor<f32, f64, Array2<f32>, Vec<f64>> {
 //     bincode::deserialize_from(BufReader::new(File::open(model_path).unwrap())).unwrap()
 // }
-
-pub fn load_onnx<P: AsRef<Path>>(model_path: P) -> Session {
-    Session::builder()
-        .unwrap()
-        .commit_from_file(model_path)
-        .unwrap()
-}
 
 pub fn test_onnx<P: AsRef<Path>>(model_path: P, input_csv: P, plot_path: P) {
     let model = load_onnx(model_path);
