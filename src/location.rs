@@ -25,41 +25,60 @@ struct Record {
     distance: f64,
 }
 
-fn read_data<P: AsRef<Path>>(input_dir: P, module: i32) -> (Array2<f32>, Vec<f64>) {
+fn read_data<P: AsRef<Path>>(
+    input_dir: P,
+    module: i32,
+    bad_flights: Vec<i32>,
+) -> (Array2<f32>, Vec<f64>) {
     println!("reading data for module {module}");
 
     let module_str = module.to_string();
+
+    let re_wav = Regex::new(r".*(\d+)\.wav$").unwrap();
+    let re_csv = Regex::new(r".*(\d+)\.csv$").unwrap();
 
     let flights = std::fs::read_dir(input_dir.as_ref().join("umc")).unwrap();
     let mut flights_wavs: Vec<PathBuf> = flights
         .map(|f| f.unwrap().path().join(&module_str))
         .flat_map(|p| std::fs::read_dir(p).unwrap().map(|d| d.unwrap().path()))
+        .filter(|p| {
+            let num: i32 = re_wav.captures(p.to_str().unwrap()).unwrap()[1]
+                .parse()
+                .unwrap();
+            !bad_flights.iter().any(|n| *n == num + 1)
+        })
         .collect();
     let mut flights_csvs: Vec<PathBuf> =
         std::fs::read_dir(input_dir.as_ref().join("module_csvs").join(&module_str))
             .unwrap()
             .map(|d| d.unwrap().path())
+            .filter(|p| {
+                let num: i32 = re_csv.captures(p.to_str().unwrap()).unwrap()[1]
+                    .parse()
+                    .unwrap();
+                !bad_flights.iter().any(|n| *n == num)
+            })
             .collect();
 
     assert_eq!(flights_wavs.len(), flights_csvs.len());
+    eprintln!("{flights_wavs:?}");
+    eprintln!("{flights_csvs:?}");
 
-    let re = Regex::new(r".*(\d+)\.wav$").unwrap();
     flights_wavs.sort_unstable_by(|a, b| {
-        let a_num: i32 = re.captures(a.to_str().unwrap()).unwrap()[1]
+        let a_num: i32 = re_wav.captures(a.to_str().unwrap()).unwrap()[1]
             .parse()
             .unwrap();
-        let b_num: i32 = re.captures(b.to_str().unwrap()).unwrap()[1]
+        let b_num: i32 = re_wav.captures(b.to_str().unwrap()).unwrap()[1]
             .parse()
             .unwrap();
         a_num.cmp(&b_num)
     });
 
-    let re = Regex::new(r".*(\d+)\.csv$").unwrap();
     flights_csvs.sort_unstable_by(|a, b| {
-        let a_num: i32 = re.captures(a.to_str().unwrap()).unwrap()[1]
+        let a_num: i32 = re_csv.captures(a.to_str().unwrap()).unwrap()[1]
             .parse()
             .unwrap();
-        let b_num: i32 = re.captures(b.to_str().unwrap()).unwrap()[1]
+        let b_num: i32 = re_csv.captures(b.to_str().unwrap()).unwrap()[1]
             .parse()
             .unwrap();
         a_num.cmp(&b_num)
@@ -134,9 +153,9 @@ pub fn generate_data_csv<P: AsRef<Path>>(
     input_dir: P,
     module: i32,
     out_path: P,
-    _bad_flights: Vec<i32>,
+    bad_flights: Vec<i32>,
 ) {
-    let (x, y) = read_data(input_dir, module);
+    let (x, y) = read_data(input_dir, module, bad_flights);
     let mut csv = BufWriter::new(File::create(out_path).unwrap());
     for (y, xs) in y.iter().zip(x.outer_iter()) {
         let n_xs = xs.len();
