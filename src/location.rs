@@ -1,4 +1,4 @@
-use ndarray::Array2;
+use ndarray::{Array2, ArrayViewD};
 use ort::{inputs, session::Session, value::Tensor};
 use plotly::{Plot, Scatter, common::Mode};
 use regex::Regex;
@@ -194,12 +194,15 @@ pub fn load_onnx<P: AsRef<Path>>(model_path: P) -> Session {
 }
 
 pub fn test_onnx<P: AsRef<Path>>(model_path: P, input_dir: P, module: i32, plot_path: P) {
+    println!("testing onnx model");
+
     let model = load_onnx(model_path);
 
     let (x, y) = read_data(input_dir, module);
 
     let outputs = model.run(inputs![x].unwrap()).unwrap();
-    println!("{:?}", outputs);
+    let y_pred: ArrayViewD<f64> = outputs["variable"].try_extract_tensor().unwrap();
+    println!("{}", y_pred);
 
     // let x_tract =
     //     tract_ndarray::Array2::from_shape_vec((x_shape[0], x_shape[1]), x.into_raw_vec()).unwrap();
