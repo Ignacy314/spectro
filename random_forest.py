@@ -1,11 +1,9 @@
 import sys
 
-import joblib
-import numpy as np
 import pandas as pd
-import skl2onnx
 from skl2onnx import to_onnx
-from skl2onnx.common.data_types import FloatTensorType, Int64TensorType
+from skl2onnx.common.data_types import (DoubleTensorType, FloatTensorType,
+                                        Int64TensorType)
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
@@ -37,8 +35,9 @@ rf.fit(X_train, y_train)
 # onx = to_onnx(rf, X[:1].astype(np.float32), options={"zipmap": False})
 onx = to_onnx(
     rf,
-    X.iloc[0].to_numpy(),
-    # initial_types=[("input", FloatTensorType([None, 682]))],
+    # X.iloc[0].to_numpy(),
+    initial_types=[("input", FloatTensorType([None, 682]))],
+    final_types=[("variable", DoubleTensorType([None, 1]))],
     # options={"zipmap": False},
 )
 with open(sys.argv[-1], "wb") as f:
