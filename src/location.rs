@@ -1,21 +1,16 @@
-use ndarray::{Array, Array2, ArrayViewD, Ix1};
-use ort::{inputs, session::Session, value::Tensor};
+use ndarray::{Array, Array2, ArrayViewD};
+use ort::{inputs, session::Session};
 use plotly::{Plot, Scatter, common::Mode};
 use regex::Regex;
 use serde::Deserialize;
 use std::{
     fs::File,
-    io::{BufReader, BufWriter, Write},
+    io::BufWriter,
+    io::Write,
     path::{Path, PathBuf},
 };
 
 use circular_buffer::CircularBuffer;
-use smartcore::{
-    ensemble::random_forest_regressor::{RandomForestRegressor, RandomForestRegressorParameters},
-    linalg::basic::arrays::ArrayView1,
-    metrics::{Metrics, RegressionMetrics},
-    model_selection::train_test_split,
-};
 
 use crate::process_samples;
 
@@ -228,13 +223,15 @@ pub fn test_onnx<P: AsRef<Path>>(model_path: P, input_csv: P, plot_path: P) {
     let n_y_pred = y_pred.len();
     let y_pred = y_pred.into_shape_with_order(n_y_pred).unwrap();
     println!("number of outputs: {}", y_pred.len());
-    println!("{}", y_pred);
 
-    let y_avg: Vec<f64> = y.windows(20).map(|w| w.sum() / w.len() as f64).collect();
+    let y_avg: Vec<f64> = y
+        .windows(20)
+        .map(|w| w.iter().sum::<f64>() / w.len() as f64)
+        .collect();
     let y_pred_avg: Vec<f64> = y_pred
         .to_vec()
         .windows(20)
-        .map(|w| w.sum() / w.len() as f64)
+        .map(|w| w.iter().sum::<f64>() / w.len() as f64)
         .collect();
 
     let x: Vec<usize> = (0..y_avg.len()).collect();

@@ -60,10 +60,10 @@ fn main() {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Detection(args) => {
+        Commands::Detection(_args) => {
             // spectro::detection::train_model(args.drone_wav, args.bg_wav, args.out_file);
         }
-        Commands::Location(args) => {
+        Commands::Location(_args) => {
             // spectro::location::train_model(args.input_dir, args.module, args.out_file);
         }
         Commands::LocationData(args) => {
