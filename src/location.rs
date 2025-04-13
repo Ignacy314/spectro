@@ -203,6 +203,7 @@ pub fn test_onnx<P: AsRef<Path>>(model_path: P, input_dir: P, module: i32, plot_
     let outputs = model.run(inputs![x].unwrap()).unwrap();
 
     let y_pred: ArrayViewD<f64> = outputs["variable"].try_extract_tensor().unwrap();
+    println!("number of outputs: {}", y_pred.len());
     println!("{}", y_pred);
 
     // let x_tract =

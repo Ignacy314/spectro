@@ -14,17 +14,17 @@ dfs = [pd.read_csv(csv, header=None) for csv in data_csvs]
 X = pd.concat([df.iloc[:, 1:] for df in dfs], axis=0, ignore_index=True)
 y = pd.concat([df.iloc[:, 1] for df in dfs], axis=0, ignore_index=True)
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.98)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 print(X_train)
 
 rf = RandomForestRegressor(random_state=42, n_jobs=-1, verbose=1)
 rf.fit(X_train, y_train)
 
-# y_pred = rf.predict(X_test)
-#
-# mse = mean_squared_error(y_test, y_pred)
-# r2 = r2_score(y_test, y_pred)
-# print(f"MSE: {mse} | R2: {r2}")
+y_pred = rf.predict(X_test)
+
+mse = mean_squared_error(y_test, y_pred)
+r2 = r2_score(y_test, y_pred)
+print(f"MSE: {mse} | R2: {r2}")
 
 # onx = skl2onnx.convert_sklearn(
 #     rf,
