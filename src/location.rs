@@ -61,8 +61,6 @@ fn read_data<P: AsRef<Path>>(
             .collect();
 
     assert_eq!(flights_wavs.len(), flights_csvs.len());
-    eprintln!("{flights_wavs:?}");
-    eprintln!("{flights_csvs:?}");
 
     flights_wavs.sort_unstable_by(|a, b| {
         let a_num: i32 = re_wav.captures(a.to_str().unwrap()).unwrap()[1]
@@ -84,8 +82,8 @@ fn read_data<P: AsRef<Path>>(
         a_num.cmp(&b_num)
     });
 
-    // eprintln!("{flights_csvs:?}");
-    // eprintln!("{flights_wavs:?}");
+    eprintln!("{flights_csvs:?}");
+    eprintln!("{flights_wavs:?}");
 
     let mut x_data = Vec::new();
     let mut y_data = Vec::new();
