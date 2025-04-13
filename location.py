@@ -19,7 +19,7 @@ X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42
 )
 
-rf = RandomForestRegressor(random_state=42, n_jobs=-1, verbose=1)
+rf = RandomForestRegressor(n_estimators=32, random_state=42, n_jobs=-1, verbose=1)
 rf.fit(X_train, y_train)
 
 y_pred = rf.predict(X_test)
@@ -34,7 +34,6 @@ print(f"MSE: {mse} | R2: {r2}")
 #     final_types=[("variable", FloatTensorType([None, 1]))],
 #     # options={'zipmap': False},
 # )
-# onx = to_onnx(rf, X[:1].astype(np.float32), options={"zipmap": False})
 onx = to_onnx(
     rf,
     # X.iloc[0].to_numpy(),

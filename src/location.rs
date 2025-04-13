@@ -200,8 +200,10 @@ fn read_data_csv<P: AsRef<Path>>(csv_path: P) -> (Vec<Vec<f32>>, Vec<f64>) {
 // }
 
 pub fn test_onnx<P: AsRef<Path>>(model_path: P, input_csv: P, plot_path: P) {
+    println!("loading onnx model");
     let model = load_onnx(model_path);
 
+    println!("reading data");
     let (x, y) = read_data_csv(input_csv);
     let x_shape = (x.len(), x[0].len());
     let x = Array::from_iter(x.into_iter().flatten())
