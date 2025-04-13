@@ -194,6 +194,8 @@ pub fn load_onnx<P: AsRef<Path>>(
     tract_onnx::onnx()
         .model_for_path(model_path)
         .unwrap()
+        .with_input_fact(0, f32::fact([682]).into())
+        .unwrap()
         .into_optimized()
         .unwrap()
         .into_runnable()
