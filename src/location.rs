@@ -130,7 +130,12 @@ fn read_data<P: AsRef<Path>>(input_dir: P, module: i32) -> (Array2<f32>, Vec<f64
     (x, y)
 }
 
-pub fn generate_data_csv<P: AsRef<Path>>(input_dir: P, module: i32, out_path: P) {
+pub fn generate_data_csv<P: AsRef<Path>>(
+    input_dir: P,
+    module: i32,
+    out_path: P,
+    _bad_flights: Vec<i32>,
+) {
     let (x, y) = read_data(input_dir, module);
     let mut csv = BufWriter::new(File::create(out_path).unwrap());
     for (y, xs) in y.iter().zip(x.outer_iter()) {
