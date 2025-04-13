@@ -140,7 +140,10 @@ pub fn generate_data_csv<P: AsRef<Path>>(input_dir: P, module: i32, out_path: P)
 }
 
 fn read_data_csv<P: AsRef<Path>>(csv_path: P) -> (Vec<Vec<f32>>, Vec<f64>) {
-    let mut csv = csv::Reader::from_path(csv_path).unwrap();
+    let mut csv = csv::ReaderBuilder::new()
+        .has_headers(false)
+        .from_path(csv_path)
+        .unwrap();
 
     let mut x = Vec::new();
     let mut y = Vec::new();
