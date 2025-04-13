@@ -38,7 +38,7 @@ rf.fit(X_train, y_train)
 onx = to_onnx(
     rf,
     initial_types=[("input", FloatTensorType([None, 682]))],
-    options={"zipmap": False},
+    # options={"zipmap": False},
 )
 with open(sys.argv[-1], "wb") as f:
     f.write(onx.SerializeToString())
