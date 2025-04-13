@@ -2,8 +2,7 @@ import sys
 
 import pandas as pd
 from skl2onnx import to_onnx
-from skl2onnx.common.data_types import (DoubleTensorType, FloatTensorType,
-                                        Int64TensorType)
+from skl2onnx.common.data_types import DoubleTensorType, FloatTensorType
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
