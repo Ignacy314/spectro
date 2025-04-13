@@ -41,9 +41,7 @@ struct LocationTestArgs {
     #[arg(short, long)]
     model_file: String,
     #[arg(short, long)]
-    input_dir: String,
-    #[arg(short, long)]
-    module: i32,
+    input_csv: String,
     #[arg(short, long)]
     plot_path: String,
 }
@@ -72,12 +70,7 @@ fn main() {
             spectro::location::generate_data_csv(args.input_dir, args.module, args.out_file);
         }
         Commands::LocationTest(args) => {
-            spectro::location::test_onnx(
-                args.model_file,
-                args.input_dir,
-                args.module,
-                args.plot_path,
-            );
+            spectro::location::test_onnx(args.model_file, args.input_csv, args.plot_path);
             // spectro::location::test_avg(
             //     args.model_file,
             //     args.input_dir,
