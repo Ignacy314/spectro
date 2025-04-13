@@ -72,12 +72,18 @@ fn main() {
             spectro::location::generate_data_csv(args.input_dir, args.module, args.out_file);
         }
         Commands::LocationTest(args) => {
-            spectro::location::test_avg(
+            spectro::location::test_onnx(
                 args.model_file,
                 args.input_dir,
                 args.module,
                 args.plot_path,
             );
+            // spectro::location::test_avg(
+            //     args.model_file,
+            //     args.input_dir,
+            //     args.module,
+            //     args.plot_path,
+            // );
         }
     }
 }

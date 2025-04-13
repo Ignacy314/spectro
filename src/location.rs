@@ -16,6 +16,8 @@ use smartcore::{
     model_selection::train_test_split,
 };
 
+use tract_onnx::{model, prelude::*};
+
 use crate::process_samples;
 
 #[allow(unused)]
@@ -183,6 +185,34 @@ pub fn load_model<P: AsRef<Path>>(
     model_path: P,
 ) -> RandomForestRegressor<f32, f64, Array2<f32>, Vec<f64>> {
     bincode::deserialize_from(BufReader::new(File::open(model_path).unwrap())).unwrap()
+}
+
+#[allow(clippy::type_complexity)]
+pub fn load_onnx<P: AsRef<Path>>(
+    model_path: P,
+) -> SimplePlan<TypedFact, Box<dyn TypedOp>, Graph<TypedFact, Box<dyn TypedOp>>> {
+    tract_onnx::onnx()
+        .model_for_path(model_path)
+        .unwrap()
+        .into_optimized()
+        .unwrap()
+        .into_runnable()
+        .unwrap()
+}
+
+pub fn test_onnx<P: AsRef<Path>>(model_path: P, input_dir: P, module: i32, plot_path: P) {
+    let model = load_onnx(model_path);
+
+    let (x, y) = read_data(input_dir, module);
+
+    let x_shape = x.shape();
+    let x_tract =
+        tract_ndarray::Array2::from_shape_vec((x_shape[0], x_shape[1]), x.into_raw_vec()).unwrap();
+    let x_tensor: Tensor = x_tract.into();
+
+    let result = model.run(tvec!(x_tensor.into())).unwrap();
+
+    println!("{:?}", result[0]);
 }
 
 pub fn test_avg<P: AsRef<Path>>(model_path: P, input_dir: P, module: i32, plot_path: P) {
