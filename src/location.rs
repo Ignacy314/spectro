@@ -194,13 +194,14 @@ pub fn load_onnx<P: AsRef<Path>>(model_path: P) -> Session {
 }
 
 pub fn test_onnx<P: AsRef<Path>>(model_path: P, input_dir: P, module: i32, plot_path: P) {
-    println!("testing onnx model");
-
     let model = load_onnx(model_path);
 
     let (x, y) = read_data(input_dir, module);
 
+    println!("testing onnx model");
+
     let outputs = model.run(inputs![x].unwrap()).unwrap();
+
     let y_pred: ArrayViewD<f64> = outputs["variable"].try_extract_tensor().unwrap();
     println!("{}", y_pred);
 
