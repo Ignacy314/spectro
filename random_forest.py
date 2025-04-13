@@ -9,7 +9,7 @@ from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
 
 data_csvs = sys.argv[1:-1]
-dfs = [pd.read_csv(csv) for csv in data_csvs]
+dfs = [pd.read_csv(csv, header=False) for csv in data_csvs]
 
 X = pd.concat([df.iloc[:, 1:] for df in dfs], axis=0, ignore_index=True)
 y = pd.concat([df.iloc[:, 1] for df in dfs], axis=0, ignore_index=True)
@@ -26,6 +26,6 @@ rf.fit(X_train, y_train)
 # r2 = r2_score(y_test, y_pred)
 # print(f"MSE: {mse} | R2: {r2}")
 
-onx = to_onnx(rf, X_train[0].astype(np.float32), options={"zipmap": False})
+onx = to_onnx(rf, X[:1].astype(np.float32), options={"zipmap": False})
 with open(sys.argv[-1], "wb") as f:
     f.write(onx.SerializeToString())
