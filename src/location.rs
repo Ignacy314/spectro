@@ -225,7 +225,8 @@ pub fn test_onnx<P: AsRef<Path>>(model_path: P, input_csv: P, plot_path: P) {
     let outputs = model.run(inputs![x].unwrap()).unwrap();
 
     let y_pred: ArrayViewD<f64> = outputs["variable"].try_extract_tensor().unwrap();
-    let y_pred = y_pred.into_dimensionality::<Ix1>().unwrap();
+    let n_y_pred = y_pred.len();
+    let y_pred = y_pred.into_shape_with_order(n_y_pred).unwrap();
     println!("number of outputs: {}", y_pred.len());
     println!("{}", y_pred);
 
