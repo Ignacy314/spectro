@@ -31,10 +31,7 @@ rf.fit(X_train, y_train)
 onx = skl2onnx.convert_sklearn(
     rf,
     initial_types=[("input", FloatTensorType([None, 682]))],
-    final_types=[
-        ("label", Int64TensorType([None, 1])),
-        ("output", FloatTensorType([None, 1])),
-    ],
+    final_types=[("variable", FloatTensorType([None, 1]))],
     options={"zipmap": False},
 )
 # onx = to_onnx(rf, X[:1].astype(np.float32), options={"zipmap": False})
