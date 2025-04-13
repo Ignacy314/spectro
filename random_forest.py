@@ -19,11 +19,11 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.99)
 rf = RandomForestRegressor(random_state=42, n_jobs=-1, verbose=1)
 rf.fit(X_train, y_train)
 
-y_pred = rf.predict(X_test)
-
-mse = mean_squared_error(y_test, y_pred)
-r2 = r2_score(y_test, y_pred)
-print(f"MSE: {mse} | R2: {r2}")
+# y_pred = rf.predict(X_test)
+#
+# mse = mean_squared_error(y_test, y_pred)
+# r2 = r2_score(y_test, y_pred)
+# print(f"MSE: {mse} | R2: {r2}")
 
 onx = to_onnx(rf, X[0].astype(np.float32), options={"zipmap": False})
 with open(sys.argv[-1], "wb") as f:
