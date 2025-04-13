@@ -34,8 +34,8 @@ fn read_data<P: AsRef<Path>>(
 
     let module_str = module.to_string();
 
-    let re_wav = Regex::new(r".*(\d+)\.wav$").unwrap();
-    let re_csv = Regex::new(r".*(\d+)\.csv$").unwrap();
+    let re_wav = Regex::new(r".*\D(\d+)\.wav$").unwrap();
+    let re_csv = Regex::new(r".*\D(\d+)\.csv$").unwrap();
 
     let flights = std::fs::read_dir(input_dir.as_ref().join("umc")).unwrap();
     let mut flights_wavs: Vec<PathBuf> = flights
