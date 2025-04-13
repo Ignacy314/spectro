@@ -9,10 +9,13 @@ from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
 
 data_csvs = sys.argv[1:-1]
-dfs = [pd.read_csv(csv, header=None) for csv in data_csvs]
+df = pd.concat(
+    [pd.read_csv(csv, header=None) for csv in data_csvs], axis=0, ignore_index=True
+)
+print(df)
 
-X = pd.concat([df.iloc[:, 1:] for df in dfs], axis=0, ignore_index=True)
-y = pd.concat([df.iloc[:, 1] for df in dfs], axis=0, ignore_index=True)
+X = df.iloc[:, 1:]
+y = df.iloc[:, 1]
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 print(X_train)

@@ -1,4 +1,4 @@
-use ndarray::{Array2, ArrayViewD};
+use ndarray::{Array, Array2, ArrayViewD};
 use ort::{inputs, session::Session, value::Tensor};
 use plotly::{Plot, Scatter, common::Mode};
 use regex::Regex;
@@ -212,7 +212,10 @@ pub fn test_onnx<P: AsRef<Path>>(model_path: P, input_csv: P, plot_path: P) {
     let model = load_onnx(model_path);
 
     let (x, y) = read_data_csv(input_csv);
-    let x = Array2::from(x);
+    let x_shape = (x.len(), x[0].len());
+    let x = Array::from_iter(x.into_iter().flatten())
+        .into_shape_with_order(x_shape)
+        .unwrap();
 
     println!("testing onnx model");
 
