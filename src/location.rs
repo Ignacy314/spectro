@@ -5,10 +5,12 @@ use regex::Regex;
 use serde::Deserialize;
 use std::{
     fs::File,
-    io::BufWriter,
-    io::Write,
+    io::{BufWriter, Write},
     path::{Path, PathBuf},
+    thread::sleep,
+    time::{Duration, Instant},
 };
+use tungstenite::connect;
 
 use circular_buffer::CircularBuffer;
 
@@ -228,7 +230,19 @@ fn read_data_csv<P: AsRef<Path>>(csv_path: P) -> (Vec<Vec<f32>>, Vec<f64>) {
 //     bincode::deserialize_from(BufReader::new(File::open(model_path).unwrap())).unwrap()
 // }
 
-pub fn test_onnx<P: AsRef<Path>>(model_path: P, input_csv: P, plot_path: P) {
+pub struct Module {
+    pub n: i32,
+    pub lat: f64,
+    pub lon: f64,
+    pub out: String,
+}
+
+pub fn test_onnx<P: AsRef<Path>>(
+    model_path: P,
+    input_csv: P,
+    plot_path: P,
+    module: Option<Module>,
+) {
     println!("loading onnx model");
     let model = load_onnx(model_path);
 
@@ -258,6 +272,16 @@ pub fn test_onnx<P: AsRef<Path>>(model_path: P, input_csv: P, plot_path: P) {
         .map(|w| w.iter().sum::<f64>() / w.len() as f64)
         .collect();
 
+    if let Some(module) = module {
+        let mac = format!("sim.{}", module.n);
+        let ip = mac.clone();
+        let mut csv = BufWriter::new(File::create(module.out).unwrap());
+        writeln!(csv, "mac,ip,lat,lon,drone,dist").unwrap();
+        for dist in y_avg.iter() {
+            writeln!(csv, "{},{},{},{},true,{dist}", &mac, &ip, module.lat, module.lon).unwrap();
+        }
+    }
+
     let x: Vec<usize> = (0..y_avg.len()).collect();
     let mut plot = Plot::new();
     let y_test_plot = Scatter::new(x.clone(), y_avg);
@@ -272,6 +296,69 @@ pub fn test_onnx<P: AsRef<Path>>(model_path: P, input_csv: P, plot_path: P) {
     // let result = model.run(tvec!(x_tensor.into())).unwrap();
     //
     // println!("{:?}", result[0]);
+}
+
+#[derive(Deserialize)]
+struct SimulationRecord {
+    mac: String,
+    ip: String,
+    lat: f64,
+    lon: f64,
+    drone: bool,
+    dist: f64,
+}
+
+impl std::fmt::Display for SimulationRecord {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{},{},{},{},{},{}",
+            &self.mac, &self.ip, self.lat, self.lon, self.drone, self.dist
+        )
+    }
+}
+
+pub fn simulate<P: AsRef<Path>>(input_dir: P) {
+    let csvs = std::fs::read_dir(input_dir).unwrap();
+
+    let mut readers = Vec::new();
+    let mut desers = Vec::new();
+    for csv in csvs {
+        let csv = csv.unwrap();
+        let reader = csv::Reader::from_path(csv.path()).unwrap();
+        readers.push(reader);
+    }
+    for reader in readers.iter_mut() {
+        desers.push(reader.deserialize::<SimulationRecord>());
+    }
+
+    let read_period = Duration::from_millis(50);
+
+    let (mut socket, _response) = match connect("ws://10.66.66.1:3012/socket") {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("Drone WebSocket connection error: {e}");
+            return;
+        }
+    };
+    println!("Drone WebSocket connected");
+
+    loop {
+        let start = Instant::now();
+
+        let records: Vec<SimulationRecord> = desers
+            .iter_mut()
+            .map(|d| d.next().unwrap().unwrap())
+            .collect();
+
+        for record in records {
+            socket
+                .send(tungstenite::Message::Text(format!("{record}").into()))
+                .unwrap();
+        }
+
+        sleep(read_period.saturating_sub(start.elapsed()));
+    }
 }
 
 // pub fn test_avg<P: AsRef<Path>>(model_path: P, input_dir: P, module: i32, plot_path: P) {

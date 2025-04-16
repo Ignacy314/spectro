@@ -1,4 +1,5 @@
 use clap::{Parser, Subcommand};
+use spectro::location::Module;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -8,11 +9,13 @@ struct Cli {
     command: Commands,
 }
 
+#[allow(clippy::enum_variant_names)]
 #[derive(Subcommand)]
 enum Commands {
     // Location(LocationArgs),
     LocationTest(LocationTestArgs),
     LocationData(LocationDataArgs),
+    LocationSim(LocationSimArgs),
     // Detection(DetectionArgs),
 }
 
@@ -40,12 +43,25 @@ struct LocationDataArgs {
 
 #[derive(clap::Args)]
 struct LocationTestArgs {
-    #[arg(short, long)]
+    #[arg(long)]
     model_file: String,
-    #[arg(short, long)]
+    #[arg(long)]
     input_csv: String,
-    #[arg(short, long)]
+    #[arg(long)]
     plot_path: String,
+    #[arg(long)]
+    module: Option<i32>,
+    #[arg(long)]
+    lat: Option<f64>,
+    #[arg(long)]
+    lon: Option<f64>,
+    #[arg(long)]
+    module_out: Option<String>,
+}
+
+#[derive(clap::Args)]
+struct LocationSimArgs {
+    input_dir: String,
 }
 
 // #[derive(clap::Args)]
@@ -77,13 +93,26 @@ fn main() {
             );
         }
         Commands::LocationTest(args) => {
-            spectro::location::test_onnx(args.model_file, args.input_csv, args.plot_path);
+            let module = if let Some(module) = args.module {
+                Some(Module {
+                    n: module,
+                    lat: args.lat.unwrap(),
+                    lon: args.lon.unwrap(),
+                    out: args.module_out.unwrap(),
+                })
+            } else {
+                None
+            };
+            spectro::location::test_onnx(args.model_file, args.input_csv, args.plot_path, module);
             // spectro::location::test_avg(
             //     args.model_file,
             //     args.input_dir,
             //     args.module,
             //     args.plot_path,
             // );
+        }
+        Commands::LocationSim(args) => {
+            spectro::location::simulate(args.input_dir);
         }
     }
 }
