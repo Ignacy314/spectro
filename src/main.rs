@@ -61,7 +61,9 @@ struct LocationTestArgs {
 
 #[derive(clap::Args)]
 struct LocationSimArgs {
+    #[arg(long)]
     input_dir: String,
+    #[arg(long)]
     modules_csv: String,
 }
 
