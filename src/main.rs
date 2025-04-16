@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand};
-use spectro::location::Module;
+// use spectro::location::Module;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -49,12 +49,12 @@ struct LocationTestArgs {
     input_csv: String,
     #[arg(long)]
     plot_path: String,
-    #[arg(long)]
-    module: Option<i32>,
-    #[arg(long)]
-    lat: Option<f64>,
-    #[arg(long)]
-    lon: Option<f64>,
+    // #[arg(long)]
+    // module: Option<i32>,
+    // #[arg(long)]
+    // lat: Option<f64>,
+    // #[arg(long)]
+    // lon: Option<f64>,
     #[arg(long)]
     module_out: Option<String>,
 }
@@ -62,6 +62,7 @@ struct LocationTestArgs {
 #[derive(clap::Args)]
 struct LocationSimArgs {
     input_dir: String,
+    modules_csv: String,
 }
 
 // #[derive(clap::Args)]
@@ -93,17 +94,12 @@ fn main() {
             );
         }
         Commands::LocationTest(args) => {
-            let module = if let Some(module) = args.module {
-                Some(Module {
-                    n: module,
-                    lat: args.lat.unwrap(),
-                    lon: args.lon.unwrap(),
-                    out: args.module_out.unwrap(),
-                })
-            } else {
-                None
-            };
-            spectro::location::test_onnx(args.model_file, args.input_csv, args.plot_path, module);
+            spectro::location::test_onnx(
+                args.model_file,
+                args.input_csv,
+                args.plot_path,
+                args.module_out,
+            );
             // spectro::location::test_avg(
             //     args.model_file,
             //     args.input_dir,
@@ -112,7 +108,7 @@ fn main() {
             // );
         }
         Commands::LocationSim(args) => {
-            spectro::location::simulate(args.input_dir);
+            spectro::location::simulate(args.input_dir, args.modules_csv);
         }
     }
 }

@@ -230,18 +230,18 @@ fn read_data_csv<P: AsRef<Path>>(csv_path: P) -> (Vec<Vec<f32>>, Vec<f64>) {
 //     bincode::deserialize_from(BufReader::new(File::open(model_path).unwrap())).unwrap()
 // }
 
-pub struct Module {
-    pub n: i32,
-    pub lat: f64,
-    pub lon: f64,
-    pub out: String,
-}
+// pub struct Module {
+//     pub n: i32,
+//     pub lat: f64,
+//     pub lon: f64,
+//     pub out: String,
+// }
 
 pub fn test_onnx<P: AsRef<Path>>(
     model_path: P,
     input_csv: P,
     plot_path: P,
-    module: Option<Module>,
+    module_out: Option<String>,
 ) {
     println!("loading onnx model");
     let model = load_onnx(model_path);
@@ -262,29 +262,33 @@ pub fn test_onnx<P: AsRef<Path>>(
     let y_pred = y_pred.into_shape_with_order(n_y_pred).unwrap();
     println!("number of outputs: {}", y_pred.len());
 
-    let y_avg: Vec<f64> = y
-        .windows(20)
-        .map(|w| w.iter().sum::<f64>() / w.len() as f64)
-        .collect();
+    // let y_avg: Vec<f64> = y
+    //     .windows(20)
+    //     .map(|w| w.iter().sum::<f64>() / w.len() as f64)
+    //     .collect();
     let y_pred_avg: Vec<f64> = y_pred
         .to_vec()
         .windows(20)
         .map(|w| w.iter().sum::<f64>() / w.len() as f64)
         .collect();
 
-    if let Some(module) = module {
-        let mac = format!("sim.{}", module.n);
-        let ip = mac.clone();
-        let mut csv = BufWriter::new(File::create(module.out).unwrap());
-        writeln!(csv, "mac,ip,lat,lon,drone,dist").unwrap();
-        for dist in y_avg.iter() {
-            writeln!(csv, "{},{},{},{},true,{dist}", &mac, &ip, module.lat, module.lon).unwrap();
+    if let Some(module_out) = module_out {
+        // let mac = format!("sim.{}", module.n);
+        // let ip = mac.clone();
+        let mut csv = BufWriter::new(File::create(module_out).unwrap());
+        writeln!(csv, "dist").unwrap();
+        for dist in y_pred_avg.iter() {
+            writeln!(csv, "{dist}").unwrap();
         }
+        // writeln!(csv, "mac,ip,lat,lon,drone,dist").unwrap();
+        // for dist in y_avg.iter() {
+        //     writeln!(csv, "{},{},{},{},true,{dist}", &mac, &ip, module.lat, module.lon).unwrap();
+        // }
     }
 
-    let x: Vec<usize> = (0..y_avg.len()).collect();
+    let x: Vec<usize> = (0..y_pred_avg.len()).collect();
     let mut plot = Plot::new();
-    let y_test_plot = Scatter::new(x.clone(), y_avg);
+    let y_test_plot = Scatter::new(x.clone(), y);
     let y_hat_plot = Scatter::new(x, y_pred_avg).mode(Mode::Markers);
     plot.add_traces(vec![y_hat_plot, y_test_plot]);
     plot.write_html(plot_path);
@@ -298,38 +302,83 @@ pub fn test_onnx<P: AsRef<Path>>(
     // println!("{:?}", result[0]);
 }
 
+// #[derive(Deserialize)]
+// struct SimulationRecord {
+//     mac: String,
+//     ip: String,
+//     lat: f64,
+//     lon: f64,
+//     drone: bool,
+//     dist: f64,
+// }
+//
+// impl std::fmt::Display for SimulationRecord {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         write!(
+//             f,
+//             "{},{},{},{},{},{}",
+//             &self.mac, &self.ip, self.lat, self.lon, self.drone, self.dist
+//         )
+//     }
+// }
+
 #[derive(Deserialize)]
-struct SimulationRecord {
+struct ModuleRecord {
+    module: i32,
+    lat: f64,
+    lon: f64,
+}
+
+struct Module {
+    _module: i32,
     mac: String,
     ip: String,
     lat: f64,
     lon: f64,
-    drone: bool,
-    dist: f64,
 }
 
-impl std::fmt::Display for SimulationRecord {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{},{},{},{},{},{}",
-            &self.mac, &self.ip, self.lat, self.lon, self.drone, self.dist
-        )
+pub fn simulate<P: AsRef<Path>>(input_dir: P, modules_csv: P) {
+    let re_csv = Regex::new(r".*\D(\d+)\.csv$").unwrap();
+
+    let mut csvs: Vec<PathBuf> = std::fs::read_dir(input_dir)
+        .unwrap()
+        .map(|d| d.unwrap().path())
+        .collect();
+    csvs.sort_unstable_by(|a, b| {
+        let a_num: i32 = re_csv.captures(a.to_str().unwrap()).unwrap()[1]
+            .parse()
+            .unwrap();
+        let b_num: i32 = re_csv.captures(b.to_str().unwrap()).unwrap()[1]
+            .parse()
+            .unwrap();
+        a_num.cmp(&b_num)
+    });
+
+    let mut modules_csv = csv::Reader::from_path(modules_csv).unwrap();
+
+    let mut modules = Vec::new();
+    for module in modules_csv.deserialize() {
+        let r: ModuleRecord = module.unwrap();
+        let mac = format!("sim.{}", r.module);
+        modules.push(Module {
+            _module: r.module,
+            mac: mac.clone(),
+            ip: mac,
+            lat: r.lat,
+            lon: r.lon,
+        });
     }
-}
 
-pub fn simulate<P: AsRef<Path>>(input_dir: P) {
-    let csvs = std::fs::read_dir(input_dir).unwrap();
+    assert_eq!(modules.len(), csvs.len());
 
     let mut readers = Vec::new();
     let mut desers = Vec::new();
     for csv in csvs {
-        let csv = csv.unwrap();
-        let reader = csv::Reader::from_path(csv.path()).unwrap();
+        let reader = csv::Reader::from_path(csv).unwrap();
         readers.push(reader);
     }
     for reader in readers.iter_mut() {
-        desers.push(reader.deserialize::<SimulationRecord>());
+        desers.push(reader.deserialize::<f64>());
     }
 
     let read_period = Duration::from_millis(50);
@@ -346,14 +395,20 @@ pub fn simulate<P: AsRef<Path>>(input_dir: P) {
     loop {
         let start = Instant::now();
 
-        let records: Vec<SimulationRecord> = desers
+        let distances: Vec<f64> = desers
             .iter_mut()
             .map(|d| d.next().unwrap().unwrap())
             .collect();
 
-        for record in records {
+        for (module, dist) in modules.iter().zip(distances.iter()) {
             socket
-                .send(tungstenite::Message::Text(format!("{record}").into()))
+                .send(tungstenite::Message::Text(
+                    format!(
+                        "{},{},{},{},true,{dist}",
+                        &module.mac, &module.ip, module.lat, module.lon
+                    )
+                    .into(),
+                ))
                 .unwrap();
         }
 
