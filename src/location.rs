@@ -404,7 +404,7 @@ pub fn simulate<P: AsRef<Path>>(input_dir: P, modules_csv: P) {
             socket
                 .send(tungstenite::Message::Text(
                     format!(
-                        "{},{},{},{},true,{dist}",
+                        "{}|{}|{}|{}|true|{dist}",
                         &module.mac, &module.ip, module.lat, module.lon
                     )
                     .into(),
