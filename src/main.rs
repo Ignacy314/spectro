@@ -82,7 +82,7 @@ fn main() {
     Logger::try_with_env_or_str("info")
         .unwrap()
         .log_to_stderr()
-        .use_utc()
+        // .use_utc()
         .start()
         .unwrap();
 
