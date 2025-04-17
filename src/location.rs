@@ -1,3 +1,4 @@
+use flexi_logger::{Logger, with_thread};
 use ndarray::{Array, Array2, ArrayViewD};
 use ort::inputs;
 use plotly::{Plot, Scatter, common::Mode};
@@ -338,6 +339,14 @@ struct Module {
 }
 
 pub fn simulate<P: AsRef<Path>>(input_dir: P, modules_csv: P) {
+    Logger::try_with_env_or_str("info")
+        .unwrap()
+        .log_to_stderr()
+        .format(with_thread)
+        .use_utc()
+        .start()
+        .unwrap();
+
     let re_csv = Regex::new(r".*\D(\d+)\.csv$").unwrap();
 
     let mut csvs: Vec<PathBuf> = std::fs::read_dir(input_dir)
