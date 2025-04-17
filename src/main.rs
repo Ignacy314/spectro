@@ -1,4 +1,5 @@
 use clap::{Parser, Subcommand};
+use flexi_logger::Logger;
 // use spectro::location::Module;
 
 #[derive(Parser)]
@@ -78,6 +79,13 @@ struct LocationSimArgs {
 // }
 
 fn main() {
+    Logger::try_with_env_or_str("info")
+        .unwrap()
+        .log_to_stderr()
+        .use_utc()
+        .start()
+        .unwrap();
+
     let cli = Cli::parse();
 
     match cli.command {
