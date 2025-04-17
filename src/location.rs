@@ -1,3 +1,4 @@
+use flexi_logger::{Logger, with_thread};
 use ndarray::{Array, Array2, ArrayViewD};
 use ort::inputs;
 use plotly::{Plot, Scatter, common::Mode};
@@ -338,6 +339,13 @@ struct Module {
 }
 
 pub fn simulate<P: AsRef<Path>>(input_dir: P, modules_csv: P) {
+    Logger::try_with_env_or_str("info")
+        .unwrap()
+        .log_to_stderr()
+        .use_utc()
+        .start()
+        .unwrap();
+
     let re_csv = Regex::new(r".*\D(\d+)\.csv$").unwrap();
 
     let mut csvs: Vec<PathBuf> = std::fs::read_dir(input_dir)
@@ -401,15 +409,10 @@ pub fn simulate<P: AsRef<Path>>(input_dir: P, modules_csv: P) {
             .collect();
 
         for (module, dist) in modules.iter().zip(distances.iter()) {
-            socket
-                .send(tungstenite::Message::Text(
-                    format!(
-                        "{}|{}|{}|{}|true|{dist}",
-                        &module.mac, &module.ip, module.lat, module.lon
-                    )
-                    .into(),
-                ))
-                .unwrap();
+            let msg =
+                format!("{}|{}|{}|{}|true|{dist}", &module.mac, &module.ip, module.lat, module.lon);
+            log::info!("{msg}");
+            socket.send(tungstenite::Message::Text(msg.into())).unwrap();
         }
 
         sleep(read_period.saturating_sub(start.elapsed()));
