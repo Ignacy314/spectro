@@ -181,6 +181,9 @@ pub fn generate_data_csv<P: AsRef<Path>>(
     wanted_flights: Option<Vec<i32>>,
 ) {
     let (x, y) = read_data(input_dir, module, bad_flights, wanted_flights);
+    if x.is_empty() || y.is_empty() {
+        return;
+    }
     let mut csv = BufWriter::new(File::create(out_path).unwrap());
     for (y, xs) in y.iter().zip(x.outer_iter()) {
         let n_xs = xs.len();
@@ -366,14 +369,6 @@ struct Module {
 }
 
 pub fn simulate<P: AsRef<Path>>(input_dir: P, modules_csv: P) {
-    Logger::try_with_env_or_str("info")
-        .unwrap()
-        .log_to_stderr()
-        .format(with_thread)
-        .use_utc()
-        .start()
-        .unwrap();
-
     let re_csv = Regex::new(r".*\D(\d+)\.csv$").unwrap();
 
     let mut csvs: Vec<PathBuf> = std::fs::read_dir(input_dir)
