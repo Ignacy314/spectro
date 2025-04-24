@@ -306,6 +306,7 @@ pub fn test_onnx<P: AsRef<Path>>(
     if let Some(module_out) = module_out {
         // let mac = format!("sim.{}", module.n);
         // let ip = mac.clone();
+        std::fs::create_dir_all(Path::new(&module_out).parent().unwrap()).unwrap();
         let mut csv = BufWriter::new(File::create(module_out).unwrap());
         writeln!(csv, "dist").unwrap();
         for dist in y_pred_avg.iter() {
