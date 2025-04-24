@@ -1,4 +1,3 @@
-use flexi_logger::{Logger, with_thread};
 use ndarray::{Array, Array2, ArrayViewD};
 use ort::inputs;
 use plotly::{Plot, Scatter, common::Mode};
@@ -89,6 +88,7 @@ fn read_data<P: AsRef<Path>>(
 
     if flights_wavs.is_empty() {
         log::info!("No flights matching criteria");
+        return (Array2::zeros((0, 0)), Vec::new());
     }
 
     flights_wavs.sort_unstable_by(|a, b| {
