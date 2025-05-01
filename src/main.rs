@@ -32,16 +32,18 @@ enum Commands {
 
 #[derive(clap::Args)]
 struct LocationDataArgs {
-    #[arg(short, long)]
+    #[arg(long)]
     input_dir: String,
-    #[arg(short, long)]
+    #[arg(long)]
     module: i32,
-    #[arg(short, long)]
+    #[arg(long)]
     out_file: String,
-    #[arg(short, long, value_parser, num_args = 0.., value_delimiter = ',')]
+    #[arg(long, value_parser, num_args = 0.., value_delimiter = ',')]
     bad_flights: Option<Vec<i32>>,
-    #[arg(short, long, value_parser, num_args = 0.., value_delimiter = ',')]
+    #[arg(long, value_parser, num_args = 0.., value_delimiter = ',')]
     wanted_flights: Option<Vec<i32>>,
+    #[arg(long)]
+    i2s: bool,
 }
 
 #[derive(clap::Args)]
@@ -60,6 +62,8 @@ struct LocationTestArgs {
     // lon: Option<f64>,
     #[arg(long)]
     module_out: Option<String>,
+    #[arg(long)]
+    i2s: bool,
 }
 
 #[derive(clap::Args)]
@@ -68,6 +72,8 @@ struct LocationSimArgs {
     input_dir: String,
     #[arg(long)]
     modules_csv: String,
+    #[arg(long)]
+    i2s: bool,
 }
 
 // #[derive(clap::Args)]
@@ -99,21 +105,40 @@ fn main() {
         //     // spectro::location::train_model(args.input_dir, args.module, args.out_file);
         // }
         Commands::LocationData(args) => {
-            spectro::location_i2s::generate_data_csv(
-                args.input_dir,
-                args.module,
-                args.out_file,
-                args.bad_flights,
-                args.wanted_flights,
-            );
+            if args.i2s {
+                spectro::location_i2s::generate_data_csv(
+                    args.input_dir,
+                    args.module,
+                    args.out_file,
+                    args.bad_flights,
+                    args.wanted_flights,
+                );
+            } else {
+                spectro::location::generate_data_csv(
+                    args.input_dir,
+                    args.module,
+                    args.out_file,
+                    args.bad_flights,
+                    args.wanted_flights,
+                );
+            }
         }
         Commands::LocationTest(args) => {
-            spectro::location_i2s::test_onnx(
-                args.model_file,
-                args.input_csv,
-                args.plot_path,
-                args.module_out,
-            );
+            if args.i2s {
+                spectro::location_i2s::test_onnx(
+                    args.model_file,
+                    args.input_csv,
+                    args.plot_path,
+                    args.module_out,
+                );
+            } else {
+                spectro::location::test_onnx(
+                    args.model_file,
+                    args.input_csv,
+                    args.plot_path,
+                    args.module_out,
+                );
+            }
             // spectro::location::test_avg(
             //     args.model_file,
             //     args.input_dir,
@@ -122,7 +147,11 @@ fn main() {
             // );
         }
         Commands::LocationSim(args) => {
-            spectro::location_i2s::simulate(args.input_dir, args.modules_csv);
+            if args.i2s {
+                spectro::location_i2s::simulate(args.input_dir, args.modules_csv);
+            } else {
+                spectro::location::simulate(args.input_dir, args.modules_csv);
+            }
         }
     }
 }

@@ -40,7 +40,7 @@ fn read_data<P: AsRef<Path>>(
     let re_wav = Regex::new(r".*\D(\d+)_(\d+)_(\d+)\.wav$").unwrap();
     let re_csv = Regex::new(r".*\D(\d+)\.csv$").unwrap();
 
-    let flights = std::fs::read_dir(input_dir.as_ref().join("umc")).unwrap();
+    let flights = std::fs::read_dir(input_dir.as_ref().join("i2s")).unwrap();
     let mut flights_wavs: Vec<PathBuf> = flights
         .map(|f| f.unwrap().path().join(&module_str))
         .flat_map(|p| std::fs::read_dir(p).unwrap().map(|d| d.unwrap().path()))
