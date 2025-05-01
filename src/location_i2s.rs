@@ -122,7 +122,7 @@ fn read_data<P: AsRef<Path>>(
     let mut row_len = 0;
     for (wav_paths, csv_path) in flights_wavs.chunks(18).zip(flights_csvs.iter()) {
         // eprintln!("{wav_path:?} | {csv_path:?}");
-        let mut buffer: CircularBuffer<8192, i32> = CircularBuffer::new();
+        let mut buffers: [CircularBuffer<8192, i32>; 18] = [const { CircularBuffer::new() }; 18];
         let mut counter = 0;
         let mut wavs: Vec<WavReader<BufReader<File>>> = wav_paths
             .iter()
@@ -144,7 +144,8 @@ fn read_data<P: AsRef<Path>>(
         let mut dist_iter = distances.iter();
         // let mut iters = wavs.map(|mut wav| wav.samples::<i32>());
 
-        let mut samples = Vec::new();
+        // let mut samples = Vec::new();
+        let mut end = false;
 
         loop {
             let windows = wavs
@@ -152,45 +153,76 @@ fn read_data<P: AsRef<Path>>(
                 .map(|it| {
                     it.samples::<i32>()
                         .by_ref()
-                        .take(48000)
+                        .take(2400)
                         .map(|s| s.unwrap())
                         .collect::<Vec<i32>>()
                 })
                 .collect::<Vec<Vec<i32>>>();
-            if windows.iter().any(|w| w.len() < 48000) {
+            if windows.iter().any(|w| w.len() < 2400) {
                 break;
             }
-            let avgs: Vec<f64> = windows
-                .iter()
-                .map(|w| w.iter().sum::<i32>() as f64 / 48000.0)
-                .collect();
-            let mut max_w = windows
-                .into_iter()
-                .zip(avgs)
-                .max_by(|a, b| a.1.total_cmp(&b.1))
-                .unwrap()
-                .0;
-            samples.append(&mut max_w);
+            for i in 0..2400 {
+                windows.iter().zip(buffers.iter_mut()).for_each(|(w, b)| {
+                    b.push_back(w[i]);
+                });
+                counter += 1;
+                if buffers[0].is_full() && counter >= 2400 {
+                    let Some(distance) = dist_iter.next() else {
+                        end = true;
+                        break;
+                    };
+                    counter = 0;
+                    let buffer = buffers
+                        .iter()
+                        .max_by(|a, b| {
+                            let a_avg = a.iter().map(|s| *s as f64 / 8192f64).sum::<f64>();
+                            let b_avg = b.iter().map(|s| *s as f64 / 8192f64).sum::<f64>();
+                            a_avg.total_cmp(&b_avg)
+                        })
+                        .unwrap();
+                    let (_freqs, values) = process_samples(buffer.iter());
+                    if row_len != 0 {
+                        assert_eq!(row_len, values.len());
+                    }
+                    row_len = values.len();
+                    x_data.extend(values);
+                    y_data.push(*distance);
+                }
+            }
+            if end {
+                break;
+            }
+            // let avgs: Vec<f64> = windows
+            //     .iter()
+            //     .map(|w| w.iter().sum::<i32>() as f64 / 48000.0)
+            //     .collect();
+            // let mut max_w = windows
+            //     .into_iter()
+            //     .zip(avgs)
+            //     .max_by(|a, b| a.1.total_cmp(&b.1))
+            //     .unwrap()
+            //     .0;
+            // samples.append(&mut max_w);
         }
 
-        for sample in samples {
-            // let sample = s.unwrap();
-            buffer.push_back(sample);
-            counter += 1;
-            if buffer.is_full() && counter >= 2400 {
-                let Some(distance) = dist_iter.next() else {
-                    break;
-                };
-                counter = 0;
-                let (_freqs, values) = process_samples(buffer.iter());
-                if row_len != 0 {
-                    assert_eq!(row_len, values.len());
-                }
-                row_len = values.len();
-                x_data.extend(values);
-                y_data.push(*distance);
-            }
-        }
+        // for sample in samples {
+        //     // let sample = s.unwrap();
+        //     buffer.push_back(sample);
+        //     counter += 1;
+        //     if buffer.is_full() && counter >= 2400 {
+        //         let Some(distance) = dist_iter.next() else {
+        //             break;
+        //         };
+        //         counter = 0;
+        //         let (_freqs, values) = process_samples(buffer.iter());
+        //         if row_len != 0 {
+        //             assert_eq!(row_len, values.len());
+        //         }
+        //         row_len = values.len();
+        //         x_data.extend(values);
+        //         y_data.push(*distance);
+        //     }
+        // }
     }
 
     let n_y = y_data.len();
