@@ -11,6 +11,7 @@ use spectrum_analyzer::{samples_fft_to_spectrum, windows::hann_window};
 
 pub mod detection;
 pub mod location;
+pub mod location_i2s;
 
 pub fn process_samples<'a, I: Iterator<Item = &'a i32>>(samples: I) -> (Vec<f32>, Vec<f32>) {
     let samples = samples.map(|s| *s as f32).collect::<Vec<_>>();

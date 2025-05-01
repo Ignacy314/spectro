@@ -99,7 +99,7 @@ fn main() {
         //     // spectro::location::train_model(args.input_dir, args.module, args.out_file);
         // }
         Commands::LocationData(args) => {
-            spectro::location::generate_data_csv(
+            spectro::location_i2s::generate_data_csv(
                 args.input_dir,
                 args.module,
                 args.out_file,
@@ -108,7 +108,7 @@ fn main() {
             );
         }
         Commands::LocationTest(args) => {
-            spectro::location::test_onnx(
+            spectro::location_i2s::test_onnx(
                 args.model_file,
                 args.input_csv,
                 args.plot_path,
@@ -122,7 +122,7 @@ fn main() {
             // );
         }
         Commands::LocationSim(args) => {
-            spectro::location::simulate(args.input_dir, args.modules_csv);
+            spectro::location_i2s::simulate(args.input_dir, args.modules_csv);
         }
     }
 }
