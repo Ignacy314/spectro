@@ -1,3 +1,4 @@
+use hound::WavReader;
 use ndarray::{Array, Array2, ArrayViewD};
 use ort::inputs;
 use plotly::{Plot, Scatter, common::Mode};
@@ -5,7 +6,7 @@ use regex::Regex;
 use serde::Deserialize;
 use std::{
     fs::File,
-    io::{BufWriter, Write},
+    io::{BufReader, BufWriter, Write},
     path::{Path, PathBuf},
     thread::sleep,
     time::{Duration, Instant},
@@ -123,9 +124,10 @@ fn read_data<P: AsRef<Path>>(
         // eprintln!("{wav_path:?} | {csv_path:?}");
         let mut buffer: CircularBuffer<8192, i32> = CircularBuffer::new();
         let mut counter = 0;
-        let mut wavs = wav_paths
+        let mut wavs: Vec<WavReader<BufReader<File>>> = wav_paths
             .iter()
-            .map(|wav_path| hound::WavReader::open(wav_path).unwrap());
+            .map(|wav_path| hound::WavReader::open(wav_path).unwrap())
+            .collect();
         let mut csv = csv::Reader::from_path(csv_path).unwrap();
 
         let mut distances = Vec::new();
@@ -146,8 +148,8 @@ fn read_data<P: AsRef<Path>>(
 
         loop {
             let windows = wavs
-                .by_ref()
-                .map(|mut it| {
+                .iter_mut()
+                .map(|it| {
                     it.samples::<i32>()
                         .by_ref()
                         .take(48000)
