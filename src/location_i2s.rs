@@ -1,10 +1,11 @@
 use hound::WavReader;
-use ndarray::{Array, Array2, ArrayViewD};
+use ndarray::{Array, Array2};
 use ort::inputs;
 use plotly::{Plot, Scatter, common::Mode};
 use regex::Regex;
 use serde::Deserialize;
 use std::{
+    f64,
     fs::File,
     io::{BufReader, BufWriter, Write},
     path::{Path, PathBuf},
@@ -341,38 +342,218 @@ fn read_data_csv<P: AsRef<Path>>(csv_path: P) -> (Vec<Vec<f32>>, Vec<f64>) {
 
 pub fn test_onnx<P: AsRef<Path>>(
     model_path: P,
-    input_csv: P,
     plot_path: P,
     module_out: Option<String>,
+    input_dir: P,
+    module: i32,
+    bad_flights: Option<Vec<i32>>,
+    wanted_flights: Option<Vec<i32>>,
 ) {
+    const ANGLES: [f64; 9] = [0.0, 22.5, 45.0, 67.5, 90.0, 112.5, 135.0, 157.5, 180.0];
+
     println!("loading onnx model");
     let model = load_onnx(model_path);
 
-    println!("reading data");
-    let (x, y) = read_data_csv(input_csv);
-    let x_shape = (x.len(), x[0].len());
-    let x = Array::from_iter(x.into_iter().flatten())
-        .into_shape_with_order(x_shape)
-        .unwrap();
+    println!("reading data for module {module}");
+
+    let module_str = module.to_string();
+
+    let re_wav = Regex::new(r".*\D(\d+)_(\d+)_(\d+)\.wav$").unwrap();
+    let re_csv = Regex::new(r".*\D(\d+)\.csv$").unwrap();
+
+    let flights = std::fs::read_dir(input_dir.as_ref().join("i2s")).unwrap();
+    let mut flights_wavs: Vec<PathBuf> = flights
+        .map(|f| f.unwrap().path().join(&module_str))
+        .flat_map(|p| std::fs::read_dir(p).unwrap().map(|d| d.unwrap().path()))
+        .filter(|p| {
+            let nums = re_wav.captures(p.to_str().unwrap()).unwrap();
+            let num = nums[1].parse::<i32>().unwrap() + 1;
+            // let mic = nums[2].parse::<i32>().unwrap();
+            // let dir = nums[3].parse::<i32>().unwrap();
+            let bad = if let Some(bad_flights) = bad_flights.as_ref() {
+                !bad_flights.iter().any(|n| *n == num)
+            } else {
+                true
+            };
+            let wanted = if let Some(wanted_flights) = wanted_flights.as_ref() {
+                wanted_flights.iter().any(|n| *n == num)
+            } else {
+                true
+            };
+            bad && wanted
+        })
+        .collect();
+    let mut flights_csvs: Vec<PathBuf> =
+        std::fs::read_dir(input_dir.as_ref().join("module_csvs").join(&module_str))
+            .unwrap()
+            .map(|d| d.unwrap().path())
+            .filter(|p| {
+                let num: i32 = re_csv.captures(p.to_str().unwrap()).unwrap()[1]
+                    .parse()
+                    .unwrap();
+                let bad = if let Some(bad_flights) = bad_flights.as_ref() {
+                    !bad_flights.iter().any(|n| *n == num)
+                } else {
+                    true
+                };
+                let wanted = if let Some(wanted_flights) = wanted_flights.as_ref() {
+                    wanted_flights.iter().any(|n| *n == num)
+                } else {
+                    true
+                };
+                bad && wanted
+            })
+            .collect();
+
+    assert_eq!(flights_wavs.len(), flights_csvs.len() * 18);
+
+    if flights_wavs.is_empty() {
+        log::info!("No flights matching criteria");
+        return;
+    }
+
+    flights_wavs.sort_unstable_by(|a, b| {
+        let nums = re_wav.captures(a.to_str().unwrap()).unwrap();
+        let a_num = nums[1].parse::<i32>().unwrap() + 1;
+        let a_mic = nums[2].parse::<i32>().unwrap();
+        let a_dir = nums[3].parse::<i32>().unwrap();
+        let nums = re_wav.captures(b.to_str().unwrap()).unwrap();
+        let b_num = nums[1].parse::<i32>().unwrap() + 1;
+        let b_mic = nums[2].parse::<i32>().unwrap();
+        let b_dir = nums[3].parse::<i32>().unwrap();
+        a_num
+            .cmp(&b_num)
+            .then_with(|| a_mic.cmp(&b_mic))
+            .then_with(|| a_dir.cmp(&b_dir))
+    });
+
+    flights_csvs.sort_unstable_by(|a, b| {
+        let a_num: i32 = re_csv.captures(a.to_str().unwrap()).unwrap()[1]
+            .parse()
+            .unwrap();
+        let b_num: i32 = re_csv.captures(b.to_str().unwrap()).unwrap()[1]
+            .parse()
+            .unwrap();
+        a_num.cmp(&b_num)
+    });
+
+    let mut dists_h = Vec::new();
+    let mut angles_h = Vec::new();
+    let mut dists_v = Vec::new();
+    let mut angles_v = Vec::new();
+
+    let mut y = Vec::new();
+    let mut row_len = 0;
+    for (wav_paths, csv_path) in flights_wavs.chunks(18).zip(flights_csvs.iter()) {
+        // eprintln!("{wav_path:?} | {csv_path:?}");
+        let mut buffers: [CircularBuffer<8192, i32>; 18] = [const { CircularBuffer::new() }; 18];
+        let mut counter = 0;
+        let mut wavs: Vec<WavReader<BufReader<File>>> = wav_paths
+            .iter()
+            .map(|wav_path| hound::WavReader::open(wav_path).unwrap())
+            .collect();
+        let mut csv = csv::Reader::from_path(csv_path).unwrap();
+
+        let mut distances = Vec::new();
+        for result in csv.deserialize() {
+            let r: Record = result.unwrap();
+            distances.push(r.distance);
+        }
+
+        // to test if csv size and wav length more or less match
+        // let n_csv_records = distances.len();
+        // let n_wav_periods = wav.duration() / 2400;
+        // eprintln!("{n_csv_records} {n_wav_periods}");
+
+        let mut dist_iter = distances.iter();
+        // let mut iters = wavs.map(|mut wav| wav.samples::<i32>());
+
+        // let mut samples = Vec::new();
+        let mut end = false;
+
+        loop {
+            let windows = wavs
+                .iter_mut()
+                .map(|it| {
+                    it.samples::<i32>()
+                        .by_ref()
+                        .take(2400)
+                        .map(|s| s.unwrap())
+                        .collect::<Vec<i32>>()
+                })
+                .collect::<Vec<Vec<i32>>>();
+            if windows.iter().any(|w| w.len() < 2400) {
+                break;
+            }
+            for i in 0..2400 {
+                windows.iter().zip(buffers.iter_mut()).for_each(|(w, b)| {
+                    b.push_back(w[i]);
+                });
+                counter += 1;
+                if buffers[0].is_full() && counter >= 2400 {
+                    let Some(distance) = dist_iter.next() else {
+                        end = true;
+                        break;
+                    };
+                    counter = 0;
+                    let mut dist_h = f64::MAX;
+                    let mut angle_h = -1f64;
+                    for (i, buffer) in buffers[0..9].iter().enumerate() {
+                        let (_freqs, values) = process_samples(buffer.iter());
+                        if row_len != 0 {
+                            assert_eq!(row_len, values.len());
+                        }
+                        row_len = values.len();
+                        let x = Array::from_shape_vec((1, values.len()), values).unwrap();
+                        let outputs = model.run(inputs![x].unwrap()).unwrap();
+                        let y_pred: f64 = *outputs["variable"]
+                            .try_extract_tensor()
+                            .unwrap()
+                            .first()
+                            .unwrap();
+                        if y_pred < dist_h {
+                            dist_h = y_pred;
+                            angle_h = ANGLES[i];
+                        }
+                    }
+                    let mut dist_v = f64::MAX;
+                    let mut angle_v = -1f64;
+                    for (i, buffer) in buffers[9..18].iter().enumerate() {
+                        let (_freqs, values) = process_samples(buffer.iter());
+                        if row_len != 0 {
+                            assert_eq!(row_len, values.len());
+                        }
+                        row_len = values.len();
+                        let x = Array::from_shape_vec((1, values.len()), values).unwrap();
+                        let outputs = model.run(inputs![x].unwrap()).unwrap();
+                        let y_pred: f64 = *outputs["variable"]
+                            .try_extract_tensor()
+                            .unwrap()
+                            .first()
+                            .unwrap();
+                        if y_pred < dist_h {
+                            dist_v = y_pred;
+                            angle_v = ANGLES[i];
+                        }
+                    }
+
+                    dists_h.push(dist_h);
+                    angles_h.push(angle_h);
+                    dists_v.push(dist_v);
+                    angles_v.push(angle_v);
+
+                    y.push(*distance);
+                }
+            }
+            if end {
+                break;
+            }
+        }
+    }
 
     println!("testing onnx model");
 
-    let outputs = model.run(inputs![x].unwrap()).unwrap();
-
-    let y_pred: ArrayViewD<f64> = outputs["variable"].try_extract_tensor().unwrap();
-    let n_y_pred = y_pred.len();
-    let y_pred = y_pred.into_shape_with_order(n_y_pred).unwrap();
-    println!("number of outputs: {}", y_pred.len());
-
-    // let y_avg: Vec<f64> = y
-    //     .windows(20)
-    //     .map(|w| w.iter().sum::<f64>() / w.len() as f64)
-    //     .collect();
-    let y_pred_avg: Vec<f64> = y_pred
-        .to_vec()
-        .windows(20)
-        .map(|w| w.iter().sum::<f64>() / w.len() as f64)
-        .collect();
+    println!("number of outputs: {}", dists_h.len());
 
     if let Some(module_out) = module_out {
         // let mac = format!("sim.{}", module.n);
@@ -380,7 +561,7 @@ pub fn test_onnx<P: AsRef<Path>>(
         std::fs::create_dir_all(Path::new(&module_out).parent().unwrap()).unwrap();
         let mut csv = BufWriter::new(File::create(module_out).unwrap());
         writeln!(csv, "dist").unwrap();
-        for dist in y_pred_avg.iter() {
+        for dist in dists_h.iter() {
             writeln!(csv, "{dist}").unwrap();
         }
         // writeln!(csv, "mac,ip,lat,lon,drone,dist").unwrap();
@@ -389,11 +570,12 @@ pub fn test_onnx<P: AsRef<Path>>(
         // }
     }
 
-    let x: Vec<usize> = (0..y_pred_avg.len()).collect();
+    let x: Vec<usize> = (0..dists_h.len()).collect();
     let mut plot = Plot::new();
     let y_test_plot = Scatter::new(x.clone(), y);
-    let y_hat_plot = Scatter::new(x, y_pred_avg).mode(Mode::Markers);
-    plot.add_traces(vec![y_hat_plot, y_test_plot]);
+    let y_hat_h_plot = Scatter::new(x.clone(), dists_h).mode(Mode::Markers);
+    let y_hat_v_plot = Scatter::new(x, dists_v).mode(Mode::Markers);
+    plot.add_traces(vec![y_hat_h_plot, y_hat_v_plot, y_test_plot]);
     plot.write_html(plot_path);
 
     // let x_tract =

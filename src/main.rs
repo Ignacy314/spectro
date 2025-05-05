@@ -15,6 +15,7 @@ struct Cli {
 enum Commands {
     // Location(LocationArgs),
     LocationTest(LocationTestArgs),
+    LocationTestI2s(LocationTestI2sArgs),
     LocationData(LocationDataArgs),
     LocationSim(LocationSimArgs),
     // Detection(DetectionArgs),
@@ -62,8 +63,24 @@ struct LocationTestArgs {
     // lon: Option<f64>,
     #[arg(long)]
     module_out: Option<String>,
+}
+
+#[derive(clap::Args)]
+struct LocationTestI2sArgs {
     #[arg(long)]
-    i2s: bool,
+    model_file: String,
+    #[arg(long)]
+    plot_path: String,
+    #[arg(long)]
+    module_out: Option<String>,
+    #[arg(long)]
+    input_dir: String,
+    #[arg(long)]
+    module: i32,
+    #[arg(long, value_parser, num_args = 0.., value_delimiter = ',')]
+    bad_flights: Option<Vec<i32>>,
+    #[arg(long, value_parser, num_args = 0.., value_delimiter = ',')]
+    wanted_flights: Option<Vec<i32>>,
 }
 
 #[derive(clap::Args)]
@@ -124,27 +141,29 @@ fn main() {
             }
         }
         Commands::LocationTest(args) => {
-            if args.i2s {
-                spectro::location_i2s::test_onnx(
-                    args.model_file,
-                    args.input_csv,
-                    args.plot_path,
-                    args.module_out,
-                );
-            } else {
-                spectro::location::test_onnx(
-                    args.model_file,
-                    args.input_csv,
-                    args.plot_path,
-                    args.module_out,
-                );
-            }
+            spectro::location::test_onnx(
+                args.model_file,
+                args.input_csv,
+                args.plot_path,
+                args.module_out,
+            );
             // spectro::location::test_avg(
             //     args.model_file,
             //     args.input_dir,
             //     args.module,
             //     args.plot_path,
             // );
+        }
+        Commands::LocationTestI2s(args) => {
+            spectro::location_i2s::test_onnx(
+                args.model_file,
+                args.plot_path,
+                args.module_out,
+                args.input_dir,
+                args.module,
+                args.bad_flights,
+                args.wanted_flights,
+            );
         }
         Commands::LocationSim(args) => {
             if args.i2s {
