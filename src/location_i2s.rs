@@ -570,11 +570,20 @@ pub fn test_onnx<P: AsRef<Path>>(
         // }
     }
 
-    let x: Vec<usize> = (0..dists_h.len()).collect();
+    let dists_h_avg: Vec<f64> = dists_h
+        .windows(20)
+        .map(|w| w.iter().sum::<f64>() / w.len() as f64)
+        .collect();
+    let dists_v_avg: Vec<f64> = dists_v
+        .windows(20)
+        .map(|w| w.iter().sum::<f64>() / w.len() as f64)
+        .collect();
+
+    let x: Vec<usize> = (0..dists_h_avg.len()).collect();
     let mut plot = Plot::new();
     let y_test_plot = Scatter::new(x.clone(), y);
-    let y_hat_h_plot = Scatter::new(x.clone(), dists_h).mode(Mode::Markers);
-    let y_hat_v_plot = Scatter::new(x, dists_v).mode(Mode::Markers);
+    let y_hat_h_plot = Scatter::new(x.clone(), dists_h_avg).mode(Mode::Markers);
+    let y_hat_v_plot = Scatter::new(x, dists_v_avg).mode(Mode::Markers);
     plot.add_traces(vec![y_hat_h_plot, y_hat_v_plot, y_test_plot]);
     plot.write_html(plot_path);
 
