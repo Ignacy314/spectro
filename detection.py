@@ -24,7 +24,7 @@ bg_df = pd.concat(
 y.extend([0 for _ in range(len(bg_df))])
 
 X = pd.concat([drone_df, bg_df], axis=0, ignore_index=True)
-X = X.astype(np.float32)
+X = X.astype(np.float32).to_numpy()
 
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42
@@ -42,7 +42,7 @@ onx = to_onnx(
     rf,
     # X_train,
     # X.iloc[0].to_numpy(),
-    initial_types=[("input", FloatTensorType([None, 682]))],
+    initial_types=[("input", FloatTensorType([682]))],
     # final_types=[("variable", Int32TensorType([None, 1]))],
     # options={"zipmap": False},
 )
