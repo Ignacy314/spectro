@@ -1,5 +1,7 @@
 import sys
 
+import numpy as np
+import onnxruntime as rt
 import pandas as pd
 from skl2onnx import to_onnx
 from skl2onnx.common.data_types import FloatTensorType
@@ -44,3 +46,12 @@ onx = to_onnx(
 )
 with open(sys.argv[-1], "wb") as f:
     f.write(onx.SerializeToString())
+
+# Compute the prediction with onnxruntime.
+import onnxruntime as rt
+
+sess = rt.InferenceSession(sys.argv[-1], providers=["CPUExecutionProvider"])
+input_name = sess.get_inputs()[0].name
+label_name = sess.get_outputs()[0].name
+print(f"input_name: {input_name} | label_name: {label_name}")
+pred_onx = sess.run([label_name], {input_name: X_test})[0]
