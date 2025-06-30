@@ -39,7 +39,7 @@ onx = to_onnx(
     rf,
     # X.iloc[0].to_numpy(),
     initial_types=[("input", FloatTensorType([None, 682]))],
-    final_types=[("variable", Int32TensorType([None, 1]))],
+    # final_types=[("variable", Int32TensorType([None, 1]))],
     # options={"zipmap": False},
 )
 with open(sys.argv[-1], "wb") as f:
