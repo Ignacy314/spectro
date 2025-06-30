@@ -40,8 +40,8 @@ print(f"Acc: {acc}")
 
 onx = to_onnx(
     rf,
-    # X[:1],
-    X.iloc[0].to_numpy(),
+    X_train,
+    # X.iloc[0].to_numpy(),
     # initial_types=[("input", FloatTensorType([682]))],
     # final_types=[("variable", Int32TensorType([None, 1]))],
     # options={"zipmap": False},
