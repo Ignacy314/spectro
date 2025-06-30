@@ -24,13 +24,12 @@ bg_df = pd.concat(
 y.extend([0 for _ in range(len(bg_df))])
 
 X = pd.concat([drone_df, bg_df], axis=0, ignore_index=True)
+X = X.iloc[:, 1:]  # for testing with location csvs, until we have proper detection csvs
 X = X.astype(np.float32)
 
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42
 )
-
-print(X_train)
 
 rf = RandomForestClassifier(n_estimators=4, random_state=42, n_jobs=-1, verbose=1)
 rf.fit(X_train, y_train)
