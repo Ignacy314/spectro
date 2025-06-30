@@ -56,5 +56,5 @@ sess = rt.InferenceSession(sys.argv[-1], providers=["CPUExecutionProvider"])
 input_name = sess.get_inputs()[0].name
 label_name = sess.get_outputs()[0].name
 print(f"input_name: {input_name} | label_name: {label_name}")
-pred_onx = sess.run([label_name], {label_name: X_test.astype(np.float32)})[0]
+pred_onx = sess.run([label_name], {input_name: X_test.astype(np.float32)})[0]
 print(pred_onx)
