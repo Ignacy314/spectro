@@ -50,12 +50,12 @@ fn read_data<P: AsRef<Path>>(
                 .unwrap()
                 + 1;
             let bad = if let Some(bad_flights) = bad_flights.as_ref() {
-                !bad_flights.iter().any(|n| *n == num)
+                !bad_flights.contains(&num)
             } else {
                 true
             };
             let wanted = if let Some(wanted_flights) = wanted_flights.as_ref() {
-                wanted_flights.iter().any(|n| *n == num)
+                wanted_flights.contains(&num)
             } else {
                 true
             };
@@ -71,12 +71,12 @@ fn read_data<P: AsRef<Path>>(
                     .parse()
                     .unwrap();
                 let bad = if let Some(bad_flights) = bad_flights.as_ref() {
-                    !bad_flights.iter().any(|n| *n == num)
+                    !bad_flights.contains(&num)
                 } else {
                     true
                 };
                 let wanted = if let Some(wanted_flights) = wanted_flights.as_ref() {
-                    wanted_flights.iter().any(|n| *n == num)
+                    wanted_flights.contains(&num)
                 } else {
                     true
                 };

@@ -1,7 +1,6 @@
 import sys
 
 import numpy as np
-import onnxruntime as rt
 import pandas as pd
 from skl2onnx import to_onnx
 from skl2onnx.common.data_types import FloatTensorType
@@ -24,14 +23,14 @@ bg_df = pd.concat(
 y.extend([0 for _ in range(len(bg_df))])
 
 X = pd.concat([drone_df, bg_df], axis=0, ignore_index=True)
-X = X.iloc[:, 1:]  # for testing with location csvs, until we have proper detection csvs
+# X = X.iloc[:, 1:]  # for testing with location csvs, until we have proper detection csvs
 X = X.astype(np.float32)
 
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42
 )
 
-rf = RandomForestClassifier(n_estimators=16, random_state=42, n_jobs=-1, verbose=1)
+rf = RandomForestClassifier(n_estimators=64, random_state=42, n_jobs=-1, verbose=1)
 rf.fit(X_train, y_train)
 
 y_pred = rf.predict(X_test)
@@ -51,11 +50,11 @@ with open(sys.argv[-1], "wb") as f:
     f.write(onx.SerializeToString())
 
 # Compute the prediction with onnxruntime.
-import onnxruntime as rt
-
-sess = rt.InferenceSession(sys.argv[-1], providers=["CPUExecutionProvider"])
-input_name = sess.get_inputs()[0].name
-label_name = sess.get_outputs()[0].name
-print(f"input_name: {input_name} | label_name: {label_name}")
-pred_onx = sess.run([label_name], {input_name: X_test.astype(np.float32)})[0]
-print(pred_onx)
+# import onnxruntime as rt
+#
+# sess = rt.InferenceSession(sys.argv[-1], providers=["CPUExecutionProvider"])
+# input_name = sess.get_inputs()[0].name
+# label_name = sess.get_outputs()[0].name
+# print(f"input_name: {input_name} | label_name: {label_name}")
+# pred_onx = sess.run([label_name], {input_name: X_test.astype(np.float32)})[0]
+# print(pred_onx)

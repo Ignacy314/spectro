@@ -2,6 +2,10 @@ use clap::{Parser, Subcommand};
 use flexi_logger::{Logger, with_thread};
 // use spectro::location::Module;
 
+use spectro::{
+    DetectionTestArgs, LocationDataArgs, LocationSimArgs, LocationTestArgs, LocationTestI2sArgs,
+};
+
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 #[command(propagate_version = true)]
@@ -19,6 +23,7 @@ enum Commands {
     LocationData(LocationDataArgs),
     LocationSim(LocationSimArgs),
     // Detection(DetectionArgs),
+    DetectionTest(DetectionTestArgs),
 }
 
 // #[derive(clap::Args)]
@@ -27,78 +32,6 @@ enum Commands {
 //     input_dir: String,
 //     #[arg(short, long)]
 //     module: i32,
-//     #[arg(short, long)]
-//     out_file: String,
-// }
-
-#[derive(clap::Args)]
-struct LocationDataArgs {
-    #[arg(long)]
-    input_dir: String,
-    #[arg(long)]
-    module: i32,
-    #[arg(long)]
-    out_file: String,
-    #[arg(long, value_parser, num_args = 0.., value_delimiter = ',')]
-    bad_flights: Option<Vec<i32>>,
-    #[arg(long, value_parser, num_args = 0.., value_delimiter = ',')]
-    wanted_flights: Option<Vec<i32>>,
-    #[arg(long)]
-    i2s: bool,
-}
-
-#[derive(clap::Args)]
-struct LocationTestArgs {
-    #[arg(long)]
-    model_file: String,
-    #[arg(long)]
-    input_csv: String,
-    #[arg(long)]
-    plot_path: String,
-    // #[arg(long)]
-    // module: Option<i32>,
-    // #[arg(long)]
-    // lat: Option<f64>,
-    // #[arg(long)]
-    // lon: Option<f64>,
-    #[arg(long)]
-    module_out: Option<String>,
-}
-
-#[derive(clap::Args)]
-struct LocationTestI2sArgs {
-    #[arg(long)]
-    model_file: String,
-    #[arg(long)]
-    plot_path: String,
-    #[arg(long)]
-    module_out: Option<String>,
-    #[arg(long)]
-    input_dir: String,
-    #[arg(long)]
-    module: i32,
-    #[arg(long, value_parser, num_args = 0.., value_delimiter = ',')]
-    bad_flights: Option<Vec<i32>>,
-    #[arg(long, value_parser, num_args = 0.., value_delimiter = ',')]
-    wanted_flights: Option<Vec<i32>>,
-}
-
-#[derive(clap::Args)]
-struct LocationSimArgs {
-    #[arg(long)]
-    input_dir: String,
-    #[arg(long)]
-    modules_csv: String,
-    #[arg(long)]
-    i2s: bool,
-}
-
-// #[derive(clap::Args)]
-// struct DetectionArgs {
-//     #[arg(short, long)]
-//     drone_wav: String,
-//     #[arg(short, long)]
-//     bg_wav: String,
 //     #[arg(short, long)]
 //     out_file: String,
 // }
@@ -171,6 +104,9 @@ fn main() {
             } else {
                 spectro::location::simulate(args.input_dir, args.modules_csv);
             }
+        }
+        Commands::DetectionTest(args) => {
+            spectro::detection::test_onnx(args);
         }
     }
 }

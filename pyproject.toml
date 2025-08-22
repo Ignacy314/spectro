@@ -1,0 +1,12 @@
+[project]
+name = "spectro"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "ipython>=9.4.0",
+    "packaging>=25.0",
+    "pandas>=2.3.0",
+    "skl2onnx>=1.19.1",
+]

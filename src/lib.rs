@@ -13,6 +13,86 @@ pub mod detection;
 pub mod location;
 pub mod location_i2s;
 
+#[derive(clap::Args)]
+pub struct LocationDataArgs {
+    #[arg(long)]
+    pub input_dir: String,
+    #[arg(long)]
+    pub module: i32,
+    #[arg(long)]
+    pub out_file: String,
+    #[arg(long, value_parser, num_args = 0.., value_delimiter = ',')]
+    pub bad_flights: Option<Vec<i32>>,
+    #[arg(long, value_parser, num_args = 0.., value_delimiter = ',')]
+    pub wanted_flights: Option<Vec<i32>>,
+    #[arg(long)]
+    pub i2s: bool,
+}
+
+#[derive(clap::Args)]
+pub struct LocationTestArgs {
+    #[arg(long)]
+    pub model_file: String,
+    #[arg(long)]
+    pub input_csv: String,
+    #[arg(long)]
+    pub plot_path: String,
+    // #[arg(long)]
+    // module: Option<i32>,
+    // #[arg(long)]
+    // lat: Option<f64>,
+    // #[arg(long)]
+    // lon: Option<f64>,
+    #[arg(long)]
+    pub module_out: Option<String>,
+}
+
+#[derive(clap::Args)]
+pub struct LocationTestI2sArgs {
+    #[arg(long)]
+    pub model_file: String,
+    #[arg(long)]
+    pub plot_path: String,
+    #[arg(long)]
+    pub module_out: Option<String>,
+    #[arg(long)]
+    pub input_dir: String,
+    #[arg(long)]
+    pub module: i32,
+    #[arg(long, value_parser, num_args = 0.., value_delimiter = ',')]
+    pub bad_flights: Option<Vec<i32>>,
+    #[arg(long, value_parser, num_args = 0.., value_delimiter = ',')]
+    pub wanted_flights: Option<Vec<i32>>,
+}
+
+#[derive(clap::Args)]
+pub struct LocationSimArgs {
+    #[arg(long)]
+    pub input_dir: String,
+    #[arg(long)]
+    pub modules_csv: String,
+    #[arg(long)]
+    pub i2s: bool,
+}
+
+// #[derive(clap::Args)]
+// struct DetectionArgs {
+//     #[arg(short, long)]
+//     drone_wav: String,
+//     #[arg(short, long)]
+//     bg_wav: String,
+//     #[arg(short, long)]
+//     out_file: String,
+// }
+
+#[derive(clap::Args)]
+pub struct DetectionTestArgs {
+    #[arg(long)]
+    pub input_wav: String,
+    #[arg(long)]
+    pub model: String,
+}
+
 pub fn process_samples<'a, I: Iterator<Item = &'a i32>>(samples: I) -> (Vec<f32>, Vec<f32>) {
     let samples = samples.map(|s| *s as f32).collect::<Vec<_>>();
     let hann_window = hann_window(&samples);

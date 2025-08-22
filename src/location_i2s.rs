@@ -268,6 +268,7 @@ pub fn generate_data_csv<P: AsRef<Path>>(
     }
 }
 
+#[allow(unused)]
 fn read_data_csv<P: AsRef<Path>>(csv_path: P) -> (Vec<Vec<f32>>, Vec<f64>) {
     let mut csv = csv::ReaderBuilder::new()
         .has_headers(false)
@@ -349,7 +350,8 @@ pub fn test_onnx<P: AsRef<Path>>(
     bad_flights: Option<Vec<i32>>,
     wanted_flights: Option<Vec<i32>>,
 ) {
-    const ANGLES: [f64; 9] = [0.0, 22.5, 45.0, 67.5, 90.0, 112.5, 135.0, 157.5, 180.0];
+    // const ANGLES: [f64; 9] = [0.0, 22.5, 45.0, 67.5, 90.0, 112.5, 135.0, 157.5, 180.0];
+    const ANGLES: [f64; 9] = [30.0, 45.0, 60.0, 75.0, 90.0, 105.0, 120.0, 135.0, 150.0];
 
     println!("loading onnx model");
     let model = load_onnx(model_path);
