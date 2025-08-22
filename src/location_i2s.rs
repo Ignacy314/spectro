@@ -268,76 +268,22 @@ pub fn generate_data_csv<P: AsRef<Path>>(
     }
 }
 
-fn read_data_csv<P: AsRef<Path>>(csv_path: P) -> (Vec<Vec<f32>>, Vec<f64>) {
-    let mut csv = csv::ReaderBuilder::new()
-        .has_headers(false)
-        .from_path(csv_path)
-        .unwrap();
-
-    let mut x = Vec::new();
-    let mut y = Vec::new();
-
-    for result in csv.deserialize() {
-        let (y_data, x_data): (f64, Vec<f32>) = result.unwrap();
-        y.push(y_data);
-        x.push(x_data);
-    }
-
-    (x, y)
-}
-
-// pub fn train_model<P: AsRef<Path>>(
-//     input_dir: P,
-//     module: i32,
-//     out_path: P,
-// ) -> RandomForestRegressor<f32, f64, Array2<f32>, Vec<f64>> {
-//     let (x, y) = read_data(input_dir, module);
+// fn read_data_csv<P: AsRef<Path>>(csv_path: P) -> (Vec<Vec<f32>>, Vec<f64>) {
+//     let mut csv = csv::ReaderBuilder::new()
+//         .has_headers(false)
+//         .from_path(csv_path)
+//         .unwrap();
 //
-//     let (x_train, x_test, y_train, y_test) = train_test_split(&x, &y, 0.2, false, Some(42));
+//     let mut x = Vec::new();
+//     let mut y = Vec::new();
 //
-//     println!("training module {module}");
-//     let model = RandomForestRegressor::fit(
-//         &x_train,
-//         &y_train,
-//         RandomForestRegressorParameters::default()
-//             .with_seed(42)
-//             .with_n_trees(32),
-//     )
-//     .unwrap();
+//     for result in csv.deserialize() {
+//         let (y_data, x_data): (f64, Vec<f32>) = result.unwrap();
+//         y.push(y_data);
+//         x.push(x_data);
+//     }
 //
-//     println!("metrics");
-//     let y_hat = model.predict(&x_test).unwrap();
-//
-//     let mse = RegressionMetrics::mean_squared_error().get_score(&y_test, &y_hat);
-//     let r2 = RegressionMetrics::r2().get_score(&y_test, &y_hat);
-//     println!("MSE: {mse} | R2: {r2}");
-//
-//     let x: Vec<usize> = (0..y_test.len()).collect();
-//     let mut plot = Plot::new();
-//     let y_test_plot = Scatter::new(x.clone(), y_test);
-//     let y_hat_plot = Scatter::new(x, y_hat).mode(Mode::Markers);
-//     plot.add_traces(vec![y_hat_plot, y_test_plot]);
-//     plot.write_html(out_path.as_ref().with_extension("html"));
-//
-//     let model_bytes = bincode::serialize(&model).unwrap();
-//     File::create(out_path)
-//         .and_then(|mut f| f.write_all(&model_bytes))
-//         .expect("Can not persist the model");
-//
-//     model
-// }
-
-// pub fn load_model<P: AsRef<Path>>(
-//     model_path: P,
-// ) -> RandomForestRegressor<f32, f64, Array2<f32>, Vec<f64>> {
-//     bincode::deserialize_from(BufReader::new(File::open(model_path).unwrap())).unwrap()
-// }
-
-// pub struct Module {
-//     pub n: i32,
-//     pub lat: f64,
-//     pub lon: f64,
-//     pub out: String,
+//     (x, y)
 // }
 
 pub fn test_onnx<P: AsRef<Path>>(
@@ -349,7 +295,7 @@ pub fn test_onnx<P: AsRef<Path>>(
     bad_flights: Option<Vec<i32>>,
     wanted_flights: Option<Vec<i32>>,
 ) {
-    const ANGLES: [f64; 9] = [0.0, 22.5, 45.0, 67.5, 90.0, 112.5, 135.0, 157.5, 180.0];
+    const ANGLES: [f64; 9] = [30.0, 45.0, 60.0, 75.0, 90.0, 105.0, 120.0, 135.0, 150.0];
 
     println!("loading onnx model");
     let model = load_onnx(model_path);
@@ -596,26 +542,6 @@ pub fn test_onnx<P: AsRef<Path>>(
     // println!("{:?}", result[0]);
 }
 
-// #[derive(Deserialize)]
-// struct SimulationRecord {
-//     mac: String,
-//     ip: String,
-//     lat: f64,
-//     lon: f64,
-//     drone: bool,
-//     dist: f64,
-// }
-//
-// impl std::fmt::Display for SimulationRecord {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         write!(
-//             f,
-//             "{},{},{},{},{},{}",
-//             &self.mac, &self.ip, self.lat, self.lon, self.drone, self.dist
-//         )
-//     }
-// }
-
 #[derive(Deserialize)]
 struct ModuleRecord {
     module: i32,
@@ -704,24 +630,3 @@ pub fn simulate<P: AsRef<Path>>(input_dir: P, modules_csv: P) {
         sleep(read_period.saturating_sub(start.elapsed()));
     }
 }
-
-// pub fn test_avg<P: AsRef<Path>>(model_path: P, input_dir: P, module: i32, plot_path: P) {
-//     let model = load_model(model_path);
-//
-//     let (x, y) = read_data(input_dir, module);
-//
-//     let y_hat = model.predict(&x).unwrap();
-//
-//     let y_avg: Vec<f64> = y.windows(20).map(|w| w.sum() / w.len() as f64).collect();
-//     let y_hat_avg: Vec<f64> = y_hat
-//         .windows(20)
-//         .map(|w| w.sum() / w.len() as f64)
-//         .collect();
-//
-//     let x: Vec<usize> = (0..y_avg.len()).collect();
-//     let mut plot = Plot::new();
-//     let y_test_plot = Scatter::new(x.clone(), y_avg);
-//     let y_hat_plot = Scatter::new(x, y_hat_avg).mode(Mode::Markers);
-//     plot.add_traces(vec![y_hat_plot, y_test_plot]);
-//     plot.write_html(plot_path);
-// }
