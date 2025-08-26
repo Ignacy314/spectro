@@ -12,6 +12,9 @@ drone_csvs = sys.argv[1].split(",")
 drone_df = pd.concat(
     [pd.read_csv(csv, header=None) for csv in drone_csvs], axis=0, ignore_index=True
 )
+drone_df = drone_df.iloc[
+    :, 1:
+]  # for testing with location csvs, until we have proper detection csvs (do we need that?)
 
 y = [1 for _ in range(len(drone_df))]
 
