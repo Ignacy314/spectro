@@ -4,6 +4,7 @@ use flexi_logger::{Logger, with_thread};
 
 use spectro::{
     DetectionTestArgs, LocationDataArgs, LocationSimArgs, LocationTestArgs, LocationTestI2sArgs,
+    WavToCsvArgs, wav_to_csv,
 };
 
 #[derive(Parser)]
@@ -24,6 +25,7 @@ enum Commands {
     LocationSim(LocationSimArgs),
     // Detection(DetectionArgs),
     DetectionTest(DetectionTestArgs),
+    WavToCsv(WavToCsvArgs),
 }
 
 // #[derive(clap::Args)]
@@ -107,6 +109,9 @@ fn main() {
         }
         Commands::DetectionTest(args) => {
             spectro::detection::test_onnx(args);
+        }
+        Commands::WavToCsv(args) => {
+            wav_to_csv(args.input, args.output);
         }
     }
 }

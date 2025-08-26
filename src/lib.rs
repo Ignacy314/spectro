@@ -93,6 +93,14 @@ pub struct DetectionTestArgs {
     pub model: String,
 }
 
+#[derive(clap::Args)]
+pub struct WavToCsvArgs {
+    #[arg(long)]
+    pub input: String,
+    #[arg(long)]
+    pub output: String,
+}
+
 pub fn process_samples<'a, I: Iterator<Item = &'a i32>>(samples: I) -> (Vec<f32>, Vec<f32>) {
     let samples = samples.map(|s| *s as f32).collect::<Vec<_>>();
     let hann_window = hann_window(&samples);
