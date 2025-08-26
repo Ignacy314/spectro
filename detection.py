@@ -23,7 +23,7 @@ bg_df = pd.concat(
 y.extend([0 for _ in range(len(bg_df))])
 
 X = pd.concat([drone_df, bg_df], axis=0, ignore_index=True)
-# X = X.iloc[:, 1:]  # for testing with location csvs, until we have proper detection csvs
+# X = X.iloc[:, 1:]  # for testing with location csvs, until we have proper detection csvs (do we need that?)
 X = X.astype(np.float32)
 
 X_train, X_test, y_train, y_test = train_test_split(
