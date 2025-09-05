@@ -1,5 +1,6 @@
 import sys
 
+import os
 import numpy as np
 import pandas as pd
 from skl2onnx import to_onnx
@@ -8,17 +9,29 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 
-drone_csvs = sys.argv[1].split(",")
+if os.path.isdir(sys.argv[1]):
+    drone_csvs = [
+        f"{sys.argv[1]}/{f}" for f in os.listdir(sys.argv[1]) if f.endswith(".csv")
+    ]
+else:
+    drone_csvs = sys.argv[1].split(",")
+
 drone_df = pd.concat(
     [pd.read_csv(csv, header=None) for csv in drone_csvs], axis=0, ignore_index=True
 )
-drone_df = drone_df.iloc[
-    :, 1:
-]  # for testing with location csvs, until we have proper detection csvs (do we need that?)
+
+# for testing with location csvs, until we have proper detection csvs (do we need that?)
+# drone_df = drone_df.iloc[:, 1:]
 
 y = [1 for _ in range(len(drone_df))]
 
-bg_csvs = sys.argv[2].split(",")
+if os.path.isdir(sys.argv[2]):
+    bg_csvs = [
+        f"{sys.argv[2]}/{f}" for f in os.listdir(sys.argv[2]) if f.endswith(".csv")
+    ]
+else:
+    bg_csvs = sys.argv[2].split(",")
+
 bg_df = pd.concat(
     [pd.read_csv(csv, header=None) for csv in bg_csvs], axis=0, ignore_index=True
 )
@@ -30,7 +43,7 @@ X = pd.concat([drone_df, bg_df], axis=0, ignore_index=True)
 X = X.astype(np.float32)
 
 X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42
+    X, y, test_size=0.1, random_state=42
 )
 
 rf = RandomForestClassifier(n_estimators=64, random_state=42, n_jobs=-1, verbose=1)

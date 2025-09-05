@@ -1,4 +1,5 @@
 import sys
+import os
 
 import pandas as pd
 from skl2onnx import to_onnx
@@ -7,7 +8,14 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
 
-data_csvs = sys.argv[1:-1]
+data_csvs = []
+for p in sys.argv[1:-1]:
+    if os.path.isdir(p):
+        data_csvs += [f"{p}/{f}" for f in os.listdir(p) if f.endswith(".csv")]
+    else:
+        data_csvs += p
+# data_csvs = sys.argv[1:-1]
+
 df = pd.concat(
     [pd.read_csv(csv, header=None) for csv in data_csvs], axis=0, ignore_index=True
 )

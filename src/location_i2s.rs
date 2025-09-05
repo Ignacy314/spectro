@@ -368,17 +368,17 @@ pub fn test_onnx<P: AsRef<Path>>(
         .map(|f| f.unwrap().path().join(&module_str))
         .flat_map(|p| std::fs::read_dir(p).unwrap().map(|d| d.unwrap().path()))
         .filter(|p| {
-            let nums = re_wav.captures(p.to_str().unwrap()).unwrap();
-            let num = nums[1].parse::<i32>().unwrap() + 1;
-            // let mic = nums[2].parse::<i32>().unwrap();
-            // let dir = nums[3].parse::<i32>().unwrap();
+            let num: i32 = re_wav.captures(p.to_str().unwrap()).unwrap()[1]
+                .parse::<i32>()
+                .unwrap()
+                + 1;
             let bad = if let Some(bad_flights) = bad_flights.as_ref() {
-                !bad_flights.iter().any(|n| *n == num)
+                !bad_flights.contains(&num)
             } else {
                 true
             };
             let wanted = if let Some(wanted_flights) = wanted_flights.as_ref() {
-                wanted_flights.iter().any(|n| *n == num)
+                wanted_flights.contains(&num)
             } else {
                 true
             };
@@ -394,12 +394,12 @@ pub fn test_onnx<P: AsRef<Path>>(
                     .parse()
                     .unwrap();
                 let bad = if let Some(bad_flights) = bad_flights.as_ref() {
-                    !bad_flights.iter().any(|n| *n == num)
+                    !bad_flights.contains(&num)
                 } else {
                     true
                 };
                 let wanted = if let Some(wanted_flights) = wanted_flights.as_ref() {
-                    wanted_flights.iter().any(|n| *n == num)
+                    wanted_flights.contains(&num)
                 } else {
                     true
                 };
