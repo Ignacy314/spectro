@@ -439,6 +439,8 @@ pub fn test_onnx<P: AsRef<Path>>(
         a_num.cmp(&b_num)
     });
 
+    println!("processing data for module {module}");
+
     let mut dists_h = Vec::new();
     let mut angles_h = Vec::new();
     let mut dists_v = Vec::new();
@@ -448,6 +450,7 @@ pub fn test_onnx<P: AsRef<Path>>(
     let mut row_len = 0;
     for (wav_paths, csv_path) in flights_wavs.chunks(18).zip(flights_csvs.iter()) {
         // eprintln!("{wav_path:?} | {csv_path:?}");
+        println!("next flight");
         let mut buffers: [CircularBuffer<8192, i32>; 18] = [const { CircularBuffer::new() }; 18];
         let mut counter = 0;
         let mut wavs: Vec<WavReader<BufReader<File>>> = wav_paths
