@@ -489,11 +489,19 @@ pub fn test_onnx<P: AsRef<Path>>(
             //     .collect::<Vec<Vec<i32>>>();
             let mut windows = Vec::with_capacity(18);
             for wav in wavs.iter_mut() {
-                let window = wav
-                    .samples::<i32>()
-                    .take(2400)
-                    .map(|s| s.unwrap())
-                    .collect::<Vec<i32>>();
+                let mut window = Vec::with_capacity(2400);
+                for (counter, s) in wav.samples::<i32>().enumerate() {
+                    if counter == 2400 {
+                        break;
+                    }
+                    let s = s.unwrap();
+                    window.push(s);
+                }
+                // let window = wav
+                //     .samples::<i32>()
+                //     .take(2400)
+                //     .map(|s| s.unwrap())
+                //     .collect::<Vec<i32>>();
                 windows.push(window);
             }
             if windows.iter().any(|w| w.len() < 2400) {
