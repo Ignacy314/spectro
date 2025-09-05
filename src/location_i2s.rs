@@ -474,16 +474,25 @@ pub fn test_onnx<P: AsRef<Path>>(
         let mut end = false;
 
         loop {
-            let windows = wavs
-                .iter_mut()
-                .map(|it| {
-                    it.samples::<i32>()
-                        .by_ref()
-                        .take(2400)
-                        .map(|s| s.unwrap())
-                        .collect::<Vec<i32>>()
-                })
-                .collect::<Vec<Vec<i32>>>();
+            // let windows = wavs
+            //     .iter_mut()
+            //     .map(|wav| {
+            //         wav.samples::<i32>()
+            //             .by_ref()
+            //             .take(2400)
+            //             .map(|s| s.unwrap())
+            //             .collect::<Vec<i32>>()
+            //     })
+            //     .collect::<Vec<Vec<i32>>>();
+            let mut windows = Vec::with_capacity(18);
+            for wav in wavs.iter_mut() {
+                let window = wav
+                    .samples::<i32>()
+                    .take(2400)
+                    .map(|s| s.unwrap())
+                    .collect::<Vec<i32>>();
+                windows.push(window);
+            }
             if windows.iter().any(|w| w.len() < 2400) {
                 break;
             }
@@ -533,7 +542,7 @@ pub fn test_onnx<P: AsRef<Path>>(
                             .unwrap()
                             .first()
                             .unwrap();
-                        if y_pred < dist_h {
+                        if y_pred < dist_v {
                             dist_v = y_pred;
                             angle_v = ANGLES[i];
                         }
