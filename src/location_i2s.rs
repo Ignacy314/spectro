@@ -268,89 +268,13 @@ pub fn generate_data_csv<P: AsRef<Path>>(
     }
 }
 
-#[allow(unused)]
-fn read_data_csv<P: AsRef<Path>>(csv_path: P) -> (Vec<Vec<f32>>, Vec<f64>) {
-    let mut csv = csv::ReaderBuilder::new()
-        .has_headers(false)
-        .from_path(csv_path)
-        .unwrap();
-
-    let mut x = Vec::new();
-    let mut y = Vec::new();
-
-    for result in csv.deserialize() {
-        let (y_data, x_data): (f64, Vec<f32>) = result.unwrap();
-        y.push(y_data);
-        x.push(x_data);
-    }
-
-    (x, y)
-}
-
-// pub fn train_model<P: AsRef<Path>>(
-//     input_dir: P,
-//     module: i32,
-//     out_path: P,
-// ) -> RandomForestRegressor<f32, f64, Array2<f32>, Vec<f64>> {
-//     let (x, y) = read_data(input_dir, module);
-//
-//     let (x_train, x_test, y_train, y_test) = train_test_split(&x, &y, 0.2, false, Some(42));
-//
-//     println!("training module {module}");
-//     let model = RandomForestRegressor::fit(
-//         &x_train,
-//         &y_train,
-//         RandomForestRegressorParameters::default()
-//             .with_seed(42)
-//             .with_n_trees(32),
-//     )
-//     .unwrap();
-//
-//     println!("metrics");
-//     let y_hat = model.predict(&x_test).unwrap();
-//
-//     let mse = RegressionMetrics::mean_squared_error().get_score(&y_test, &y_hat);
-//     let r2 = RegressionMetrics::r2().get_score(&y_test, &y_hat);
-//     println!("MSE: {mse} | R2: {r2}");
-//
-//     let x: Vec<usize> = (0..y_test.len()).collect();
-//     let mut plot = Plot::new();
-//     let y_test_plot = Scatter::new(x.clone(), y_test);
-//     let y_hat_plot = Scatter::new(x, y_hat).mode(Mode::Markers);
-//     plot.add_traces(vec![y_hat_plot, y_test_plot]);
-//     plot.write_html(out_path.as_ref().with_extension("html"));
-//
-//     let model_bytes = bincode::serialize(&model).unwrap();
-//     File::create(out_path)
-//         .and_then(|mut f| f.write_all(&model_bytes))
-//         .expect("Can not persist the model");
-//
-//     model
-// }
-
-// pub fn load_model<P: AsRef<Path>>(
-//     model_path: P,
-// ) -> RandomForestRegressor<f32, f64, Array2<f32>, Vec<f64>> {
-//     bincode::deserialize_from(BufReader::new(File::open(model_path).unwrap())).unwrap()
-// }
-
-// pub struct Module {
-//     pub n: i32,
-//     pub lat: f64,
-//     pub lon: f64,
-//     pub out: String,
-// }
-
-pub fn test_onnx<P: AsRef<Path>>(
-    model_path: P,
-    plot_path: P,
-    module_out: Option<String>,
+pub fn read_data_angled<P: AsRef<Path>>(
     input_dir: P,
+    model_path: P,
     module: i32,
     bad_flights: Option<Vec<i32>>,
     wanted_flights: Option<Vec<i32>>,
-) {
-    // const ANGLES: [f64; 9] = [0.0, 22.5, 45.0, 67.5, 90.0, 112.5, 135.0, 157.5, 180.0];
+) -> [Vec<f64>; 5] {
     const ANGLES: [f64; 9] = [30.0, 45.0, 60.0, 75.0, 90.0, 105.0, 120.0, 135.0, 150.0];
 
     println!("loading onnx model");
@@ -411,7 +335,7 @@ pub fn test_onnx<P: AsRef<Path>>(
 
     if flights_wavs.is_empty() {
         log::info!("No flights matching criteria");
-        return;
+        return [const { Vec::new() }; 5];
     }
 
     flights_wavs.sort_unstable_by(|a, b| {
@@ -573,6 +497,340 @@ pub fn test_onnx<P: AsRef<Path>>(
         }
     }
 
+    [dists_h, angles_h, dists_v, angles_v, y]
+}
+
+// pub fn generate_data_csv_angled<P: AsRef<Path>>(
+//     input_dir: P,
+//     model_path: P,
+//     module: i32,
+//     out_path: P,
+//     bad_flights: Option<Vec<i32>>,
+//     wanted_flights: Option<Vec<i32>>,
+// ) {
+//
+//     let vecs = read_data_angled(input_dir, model_path, module, bad_flights, wanted_flights);
+//     vecs.iter().fold([], |acc, v| )
+//     let mut csv = BufWriter::new(File::create(out_path).unwrap());
+//     for (y, xs) in y.iter().zip(x.outer_iter()) {
+//         let n_xs = xs.len();
+//         write!(csv, "{y},").unwrap();
+//         let x_vec = xs.to_vec();
+//         for x in &x_vec[0..(n_xs - 1)] {
+//             write!(csv, "{x},").unwrap();
+//         }
+//         writeln!(csv, "{}", x_vec[n_xs - 1]).unwrap();
+//     }
+// }
+
+#[allow(unused)]
+fn read_data_csv<P: AsRef<Path>>(csv_path: P) -> (Vec<Vec<f32>>, Vec<f64>) {
+    let mut csv = csv::ReaderBuilder::new()
+        .has_headers(false)
+        .from_path(csv_path)
+        .unwrap();
+
+    let mut x = Vec::new();
+    let mut y = Vec::new();
+
+    for result in csv.deserialize() {
+        let (y_data, x_data): (f64, Vec<f32>) = result.unwrap();
+        y.push(y_data);
+        x.push(x_data);
+    }
+
+    (x, y)
+}
+
+// pub fn train_model<P: AsRef<Path>>(
+//     input_dir: P,
+//     module: i32,
+//     out_path: P,
+// ) -> RandomForestRegressor<f32, f64, Array2<f32>, Vec<f64>> {
+//     let (x, y) = read_data(input_dir, module);
+//
+//     let (x_train, x_test, y_train, y_test) = train_test_split(&x, &y, 0.2, false, Some(42));
+//
+//     println!("training module {module}");
+//     let model = RandomForestRegressor::fit(
+//         &x_train,
+//         &y_train,
+//         RandomForestRegressorParameters::default()
+//             .with_seed(42)
+//             .with_n_trees(32),
+//     )
+//     .unwrap();
+//
+//     println!("metrics");
+//     let y_hat = model.predict(&x_test).unwrap();
+//
+//     let mse = RegressionMetrics::mean_squared_error().get_score(&y_test, &y_hat);
+//     let r2 = RegressionMetrics::r2().get_score(&y_test, &y_hat);
+//     println!("MSE: {mse} | R2: {r2}");
+//
+//     let x: Vec<usize> = (0..y_test.len()).collect();
+//     let mut plot = Plot::new();
+//     let y_test_plot = Scatter::new(x.clone(), y_test);
+//     let y_hat_plot = Scatter::new(x, y_hat).mode(Mode::Markers);
+//     plot.add_traces(vec![y_hat_plot, y_test_plot]);
+//     plot.write_html(out_path.as_ref().with_extension("html"));
+//
+//     let model_bytes = bincode::serialize(&model).unwrap();
+//     File::create(out_path)
+//         .and_then(|mut f| f.write_all(&model_bytes))
+//         .expect("Can not persist the model");
+//
+//     model
+// }
+
+// pub fn load_model<P: AsRef<Path>>(
+//     model_path: P,
+// ) -> RandomForestRegressor<f32, f64, Array2<f32>, Vec<f64>> {
+//     bincode::deserialize_from(BufReader::new(File::open(model_path).unwrap())).unwrap()
+// }
+
+// pub struct Module {
+//     pub n: i32,
+//     pub lat: f64,
+//     pub lon: f64,
+//     pub out: String,
+// }
+
+pub fn test_onnx<P: AsRef<Path>>(
+    model_path: P,
+    plot_path: P,
+    module_out: Option<String>,
+    input_dir: P,
+    module: i32,
+    bad_flights: Option<Vec<i32>>,
+    wanted_flights: Option<Vec<i32>>,
+) {
+    // const ANGLES: [f64; 9] = [0.0, 22.5, 45.0, 67.5, 90.0, 112.5, 135.0, 157.5, 180.0];
+    // const ANGLES: [f64; 9] = [30.0, 45.0, 60.0, 75.0, 90.0, 105.0, 120.0, 135.0, 150.0];
+    //
+    // println!("loading onnx model");
+    // let model = load_onnx(model_path);
+    //
+    // println!("reading data for module {module}");
+    //
+    // let module_str = module.to_string();
+    //
+    // let re_wav = Regex::new(r".*\D(\d+)_(\d+)_(\d+)\.wav$").unwrap();
+    // let re_csv = Regex::new(r".*\D(\d+)\.csv$").unwrap();
+    //
+    // let flights = std::fs::read_dir(input_dir.as_ref().join("i2s")).unwrap();
+    // let mut flights_wavs: Vec<PathBuf> = flights
+    //     .map(|f| f.unwrap().path().join(&module_str))
+    //     .flat_map(|p| std::fs::read_dir(p).unwrap().map(|d| d.unwrap().path()))
+    //     .filter(|p| {
+    //         let num: i32 = re_wav.captures(p.to_str().unwrap()).unwrap()[1]
+    //             .parse::<i32>()
+    //             .unwrap()
+    //             + 1;
+    //         let bad = if let Some(bad_flights) = bad_flights.as_ref() {
+    //             !bad_flights.contains(&num)
+    //         } else {
+    //             true
+    //         };
+    //         let wanted = if let Some(wanted_flights) = wanted_flights.as_ref() {
+    //             wanted_flights.contains(&num)
+    //         } else {
+    //             true
+    //         };
+    //         bad && wanted
+    //     })
+    //     .collect();
+    // let mut flights_csvs: Vec<PathBuf> =
+    //     std::fs::read_dir(input_dir.as_ref().join("module_csvs").join(&module_str))
+    //         .unwrap()
+    //         .map(|d| d.unwrap().path())
+    //         .filter(|p| {
+    //             let num: i32 = re_csv.captures(p.to_str().unwrap()).unwrap()[1]
+    //                 .parse()
+    //                 .unwrap();
+    //             let bad = if let Some(bad_flights) = bad_flights.as_ref() {
+    //                 !bad_flights.contains(&num)
+    //             } else {
+    //                 true
+    //             };
+    //             let wanted = if let Some(wanted_flights) = wanted_flights.as_ref() {
+    //                 wanted_flights.contains(&num)
+    //             } else {
+    //                 true
+    //             };
+    //             bad && wanted
+    //         })
+    //         .collect();
+    //
+    // assert_eq!(flights_wavs.len(), flights_csvs.len() * 18);
+    //
+    // if flights_wavs.is_empty() {
+    //     log::info!("No flights matching criteria");
+    //     return;
+    // }
+    //
+    // flights_wavs.sort_unstable_by(|a, b| {
+    //     let nums = re_wav.captures(a.to_str().unwrap()).unwrap();
+    //     let a_num = nums[1].parse::<i32>().unwrap() + 1;
+    //     let a_mic = nums[2].parse::<i32>().unwrap();
+    //     let a_dir = nums[3].parse::<i32>().unwrap();
+    //     let nums = re_wav.captures(b.to_str().unwrap()).unwrap();
+    //     let b_num = nums[1].parse::<i32>().unwrap() + 1;
+    //     let b_mic = nums[2].parse::<i32>().unwrap();
+    //     let b_dir = nums[3].parse::<i32>().unwrap();
+    //     a_num
+    //         .cmp(&b_num)
+    //         .then_with(|| a_mic.cmp(&b_mic))
+    //         .then_with(|| a_dir.cmp(&b_dir))
+    // });
+    //
+    // flights_csvs.sort_unstable_by(|a, b| {
+    //     let a_num: i32 = re_csv.captures(a.to_str().unwrap()).unwrap()[1]
+    //         .parse()
+    //         .unwrap();
+    //     let b_num: i32 = re_csv.captures(b.to_str().unwrap()).unwrap()[1]
+    //         .parse()
+    //         .unwrap();
+    //     a_num.cmp(&b_num)
+    // });
+    //
+    // println!("processing data for module {module}");
+    //
+    // let mut dists_h = Vec::new();
+    // let mut angles_h = Vec::new();
+    // let mut dists_v = Vec::new();
+    // let mut angles_v = Vec::new();
+    //
+    // let mut y = Vec::new();
+    // let mut row_len = 0;
+    // for (wav_paths, csv_path) in flights_wavs.chunks(18).zip(flights_csvs.iter()) {
+    //     // eprintln!("{wav_path:?} | {csv_path:?}");
+    //     println!("next flight");
+    //     let mut buffers: [CircularBuffer<8192, i32>; 18] = [const { CircularBuffer::new() }; 18];
+    //     let mut counter = 0;
+    //     let mut wavs: Vec<WavReader<BufReader<File>>> = wav_paths
+    //         .iter()
+    //         .map(|wav_path| hound::WavReader::open(wav_path).unwrap())
+    //         .collect();
+    //     let mut csv = csv::Reader::from_path(csv_path).unwrap();
+    //
+    //     let mut distances = Vec::new();
+    //     for result in csv.deserialize() {
+    //         let r: Record = result.unwrap();
+    //         distances.push(r.distance);
+    //     }
+    //
+    //     // to test if csv size and wav length more or less match
+    //     // let n_csv_records = distances.len();
+    //     // let n_wav_periods = wav.duration() / 2400;
+    //     // eprintln!("{n_csv_records} {n_wav_periods}");
+    //
+    //     let mut dist_iter = distances.iter();
+    //     // let mut iters = wavs.map(|mut wav| wav.samples::<i32>());
+    //
+    //     // let mut samples = Vec::new();
+    //     let mut end = false;
+    //
+    //     loop {
+    //         // let windows = wavs
+    //         //     .iter_mut()
+    //         //     .map(|wav| {
+    //         //         wav.samples::<i32>()
+    //         //             .by_ref()
+    //         //             .take(2400)
+    //         //             .map(|s| s.unwrap())
+    //         //             .collect::<Vec<i32>>()
+    //         //     })
+    //         //     .collect::<Vec<Vec<i32>>>();
+    //         let mut windows = Vec::with_capacity(18);
+    //         for wav in wavs.iter_mut() {
+    //             let mut window = Vec::with_capacity(2400);
+    //             for (counter, s) in wav.samples::<i32>().enumerate() {
+    //                 if counter == 2400 {
+    //                     break;
+    //                 }
+    //                 let s = s.unwrap();
+    //                 window.push(s);
+    //             }
+    //             // let window = wav
+    //             //     .samples::<i32>()
+    //             //     .take(2400)
+    //             //     .map(|s| s.unwrap())
+    //             //     .collect::<Vec<i32>>();
+    //             windows.push(window);
+    //         }
+    //         if windows.iter().any(|w| w.len() < 2400) {
+    //             break;
+    //         }
+    //         for i in 0..2400 {
+    //             windows.iter().zip(buffers.iter_mut()).for_each(|(w, b)| {
+    //                 b.push_back(w[i]);
+    //             });
+    //             counter += 1;
+    //             if buffers[0].is_full() && counter >= 2400 {
+    //                 let Some(distance) = dist_iter.next() else {
+    //                     end = true;
+    //                     break;
+    //                 };
+    //                 counter = 0;
+    //                 let mut dist_h = f64::MAX;
+    //                 let mut angle_h = -1f64;
+    //                 for (i, buffer) in buffers[0..9].iter().enumerate() {
+    //                     let (_freqs, values) = process_samples(buffer.iter());
+    //                     if row_len != 0 {
+    //                         assert_eq!(row_len, values.len());
+    //                     }
+    //                     row_len = values.len();
+    //                     let x = Array::from_shape_vec((1, values.len()), values).unwrap();
+    //                     let outputs = model.run(inputs![x].unwrap()).unwrap();
+    //                     let y_pred: f64 = *outputs["variable"]
+    //                         .try_extract_tensor()
+    //                         .unwrap()
+    //                         .first()
+    //                         .unwrap();
+    //                     if y_pred < dist_h {
+    //                         dist_h = y_pred;
+    //                         angle_h = ANGLES[i];
+    //                     }
+    //                 }
+    //                 let mut dist_v = f64::MAX;
+    //                 let mut angle_v = -1f64;
+    //                 for (i, buffer) in buffers[9..18].iter().enumerate() {
+    //                     let (_freqs, values) = process_samples(buffer.iter());
+    //                     if row_len != 0 {
+    //                         assert_eq!(row_len, values.len());
+    //                     }
+    //                     row_len = values.len();
+    //                     let x = Array::from_shape_vec((1, values.len()), values).unwrap();
+    //                     let outputs = model.run(inputs![x].unwrap()).unwrap();
+    //                     let y_pred: f64 = *outputs["variable"]
+    //                         .try_extract_tensor()
+    //                         .unwrap()
+    //                         .first()
+    //                         .unwrap();
+    //                     if y_pred < dist_v {
+    //                         dist_v = y_pred;
+    //                         angle_v = ANGLES[i];
+    //                     }
+    //                 }
+    //
+    //                 dists_h.push(dist_h);
+    //                 angles_h.push(angle_h);
+    //                 dists_v.push(dist_v);
+    //                 angles_v.push(angle_v);
+    //
+    //                 y.push(*distance);
+    //             }
+    //         }
+    //         if end {
+    //             break;
+    //         }
+    //     }
+    // }
+
+    let [dists_h, angles_h, dists_v, angles_v, dists_real] =
+        read_data_angled(input_dir, model_path, module, bad_flights, wanted_flights);
+
     println!("testing onnx model");
 
     println!("number of outputs: {}", dists_h.len());
@@ -582,9 +840,14 @@ pub fn test_onnx<P: AsRef<Path>>(
         // let ip = mac.clone();
         std::fs::create_dir_all(Path::new(&module_out).parent().unwrap()).unwrap();
         let mut csv = BufWriter::new(File::create(module_out).unwrap());
-        writeln!(csv, "dist").unwrap();
-        for dist in dists_h.iter() {
-            writeln!(csv, "{dist}").unwrap();
+        writeln!(csv, "dist_h,angle_h,dist_v,angle_v,dist_real").unwrap();
+        for (((dist_h, angle_h), (dist_v, angle_v)), dist_real) in dists_h
+            .iter()
+            .zip(angles_h.iter())
+            .zip(dists_v.iter().zip(angles_v.iter()))
+            .zip(dists_real.iter())
+        {
+            writeln!(csv, "{dist_h},{angle_h},{dist_v},{angle_v},{dist_real}").unwrap();
         }
         // writeln!(csv, "mac,ip,lat,lon,drone,dist").unwrap();
         // for dist in y_avg.iter() {
@@ -603,7 +866,7 @@ pub fn test_onnx<P: AsRef<Path>>(
 
     let x: Vec<usize> = (0..dists_h_avg.len()).collect();
     let mut plot = Plot::new();
-    let y_test_plot = Scatter::new(x.clone(), y);
+    let y_test_plot = Scatter::new(x.clone(), dists_real);
     let y_hat_h_plot = Scatter::new(x.clone(), dists_h_avg).mode(Mode::Markers);
     let y_hat_v_plot = Scatter::new(x, dists_v_avg).mode(Mode::Markers);
     plot.add_traces(vec![y_hat_h_plot, y_hat_v_plot, y_test_plot]);
